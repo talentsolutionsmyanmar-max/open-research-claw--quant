@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://www.coinglass.com/FundingRateHeatMap",
+    "name": "Funding Rate Heatmap",
+    "snippet": "The \"Funding Rate Heatmap Indicator\" not only displays cryptocurrency funding rates across timeframes but also uses color intensity to convey market ...",
+    "host_name": "www.coinglass.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.coinglass.com/pro/futures/LiquidationHeatMap",
+    "name": "Binance BTC/USDT Liquidation Heatmap",
+    "snippet": "24h Liquidation. $458,464,822. +54.87% · 24h Long/Short. 48.52%/51.48% · API · Download APP. English. Market.",
+    "host_name": "www.coinglass.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.coinglass.com",
+    "name": "CoinGlass | Crypto Market Data: Derivatives, Options, Spot, Order Flow, Liquidity & Order Depth, Liquidation Heatmaps",
+    "snippet": "24h Liquidation. $458,464,822. +54.87 ... Funding Rate. Volume (24h). Volume (24h%). Market Cap. OI.",
+    "host_name": "www.coinglass.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.coinglass.com/liquidations",
+    "name": "Bitcoin Liquidations, Cryptocurrency Liquidations, Real-Time Liquidation Heatmap, Binance Liquidations",
+    "snippet": "Cryptocurrency liquidation heatmap, total Bitcoin and cryptocurrency liquidation charts, check liquidations for Binance, Bitmex, OKX, Bybit, and exchange ...",
+    "host_name": "www.coinglass.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.coinglass.com/pricing",
+    "name": "Crypto Derivatives Data API, Bitcoin ETF API, Funding Rate & Liquidation Data API",
+    "snippet": "Coinglass API is a leading API system designed to provide users with aggregated data on contract trading volume, open interest, funding rates, liquidation ...",
+    "host_name": "www.coinglass.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.coinglass.com/FundingRate",
+    "name": "Crypto Funding Rate, Bitcoin Funding Rate Compare, Binance Funding Rate, Bitcoin Funding Rate",
+    "snippet": "In general, the maximum upper limit for Bitcoin's funding rate is 0.375%, and the minimum lower limit is -0.375%, though this may vary slightly across different ...",
+    "host_name": "www.coinglass.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.coinglass.com/v3.0/reference/liquidation-heatmap",
+    "name": "Liquidation Heatmap",
+    "snippet": "This API presents liquidation levels on the chart by calculating them based on market data and various leverage amounts. Recent Requests.",
+    "host_name": "docs.coinglass.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.coinglass.com/pro/futures/LiquidationHeatMap?coin=SOL",
+    "name": "Binance SOL/USDT Liquidation Heatmap",
+    "snippet": "The Liquidation Heatmap provided by CoinGlass helps estimate price ranges where large-scale liquidation events may occur. Liquidations play a crucial role ...",
+    "host_name": "www.coinglass.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.coinglass.com/reference/liquidation-aggregate-heatmap",
+    "name": "Coin Liquidation Heatmap Model1",
+    "snippet": "This endpoint provides aggregated liquidation levels on a heatmap chart, calculated based on market data and liquidation leverage levels.",
+    "host_name": "docs.coinglass.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.coinglass.com/pro/futures/Cryptofutures",
+    "name": "Crypto Futures Trading Volume and Open Interest Chart",
+    "snippet": "CoinGlass Crypto Futures Volume and Open Interest Chart visualizes real-time blockchain and exchange data to reveal market activity and position trends.",
+    "host_name": "www.coinglass.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]
