@@ -27,6 +27,8 @@ from kz_research_store import list_kz_runs
 from kz_autoresearch import run_kz_research_once, start_background_poller
 import os
 import subprocess
+from pathlib import Path
+import re
 
 ALLOWED_TIMEFRAMES = frozenset(
     {
@@ -367,6 +369,78 @@ def api_research_evolve():
         return jsonify({"success": True, **out})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/research/evolution-status")
+def api_research_evolution_status():
+    """
+    Background evolution monitor for mobile/browser.
+
+    Reads last lines from `evolution_run.log` if present; otherwise falls back to
+    `journalctl -u ict-evolution` so systemd runs are also visible.
+    """
+    try:
+        lines = int(request.args.get("lines", 80))
+    except ValueError:
+        lines = 80
+    lines = max(10, min(lines, 300))
+
+    repo_root = Path(__file__).resolve().parent
+    file_path = repo_root / "evolution_run.log"
+
+    text = ""
+    source = "none"
+    if file_path.exists():
+        try:
+            all_lines = file_path.read_text(encoding="utf-8", errors="ignore").splitlines()
+            text = "\n".join(all_lines[-lines:])
+            source = "file"
+        except Exception:
+            text = ""
+
+    if not text:
+        try:
+            cmd = ["journalctl", "-u", "ict-evolution.service", "-n", str(lines), "--no-pager", "-o", "cat"]
+            r = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            text = r.stdout.strip()
+            source = "journalctl"
+        except Exception:
+            text = ""
+
+    phase = "unknown"
+    latest_generation = None
+    latest_generation_total = None
+    best_fitness = None
+
+    if text:
+        if "RANK1_GENES_START" in text or "RANK1_GENES_END" in text:
+            phase = "apply_rank1"
+        elif "crisis verification" in text.lower() or "crisis verification top_k" in text:
+            phase = "crisis"
+        elif "AGGREGATE_START" in text or "AGGREGATE_END" in text:
+            phase = "verifying"
+        else:
+            phase = "evolving"
+
+        m = re.findall(r"\[evolution\]\s+generation\s+(\d+)/(\d+)", text)
+        if m:
+            latest_generation, latest_generation_total = m[-1]
+
+        bf = re.findall(r"best_fitness=([-+]?\d*\.?\d+)", text)
+        if bf:
+            best_fitness = bf[-1]
+
+    return jsonify(
+        {
+            "success": True,
+            "source": source,
+            "phase": phase,
+            "latest_generation": latest_generation,
+            "latest_generation_total": latest_generation_total,
+            "best_fitness": best_fitness,
+            "tail": text,
+        }
+    )
 
 
 @app.route("/api/research/kz-runs")

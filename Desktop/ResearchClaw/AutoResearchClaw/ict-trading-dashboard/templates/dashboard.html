@@ -792,6 +792,26 @@
             color: var(--text);
           "
         ></pre>
+
+        <div style="margin-top: 0.7rem; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted)">
+          Background evolution (auto-refresh)
+        </div>
+        <pre
+          id="bg-evolution-log"
+          class="mono"
+          style="
+            margin: 0.35rem 0 0;
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.68rem;
+            white-space: pre-wrap;
+            max-height: 260px;
+            overflow: auto;
+            color: var(--text);
+          "
+        ></pre>
       </div>
 
       <div class="grid-metrics">
@@ -2031,6 +2051,41 @@
         log.prepend(div);
         while (log.children.length > 12) log.removeChild(log.lastChild);
       }
+
+      async function loadBgEvolutionStatus() {
+        const el = document.getElementById("bg-evolution-log");
+        if (!el) return;
+        try {
+          const r = await fetch("/api/research/evolution-status?lines=120");
+          const j = await r.json();
+          if (!j || !j.success) {
+            el.textContent = "Evolution status unavailable";
+            return;
+          }
+
+          const gen =
+            j.latest_generation != null && j.latest_generation_total != null
+              ? j.latest_generation + "/" + j.latest_generation_total
+              : "—";
+          const bf = j.best_fitness != null ? j.best_fitness : "—";
+          const head =
+            "phase=" +
+            (j.phase || "unknown") +
+            " | gen=" +
+            gen +
+            " | best_fitness=" +
+            bf +
+            " | source=" +
+            (j.source || "—") +
+            "\n\n";
+          el.textContent = head + (j.tail || "");
+        } catch (e) {
+          el.textContent = "Evolution monitor error: " + String(e);
+        }
+      }
+
+      loadBgEvolutionStatus();
+      setInterval(loadBgEvolutionStatus, 15000);
     </script>
   </body>
 </html>
