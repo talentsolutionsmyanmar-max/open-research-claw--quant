@@ -1,0 +1,2036 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AutoResearchClaw — Trading Lab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+      :root {
+        --bg-deep: #0c0f14;
+        --bg-panel: rgba(18, 24, 33, 0.92);
+        --border: rgba(255, 255, 255, 0.08);
+        --text: #e8eaef;
+        --muted: #8b93a7;
+        --accent: #f59e0b;
+        --accent-dim: rgba(245, 158, 11, 0.15);
+        --cyan: #22d3ee;
+        --green: #34d399;
+        --red: #f87171;
+        --radius: 14px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "DM Sans", system-ui, sans-serif;
+        background: var(--bg-deep);
+        background-image: radial-gradient(ellipse 120% 80% at 50% -20%, rgba(245, 158, 11, 0.12), transparent),
+          radial-gradient(ellipse 80% 50% at 100% 50%, rgba(34, 211, 238, 0.06), transparent);
+        color: var(--text);
+      }
+      .mono {
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+      }
+      .panel {
+        background: var(--bg-panel);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        backdrop-filter: blur(12px);
+      }
+      header.top {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        border-bottom: 1px solid var(--border);
+        background: rgba(12, 15, 20, 0.85);
+        backdrop-filter: blur(16px);
+      }
+      .wrap {
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 0 1.25rem;
+      }
+      .header-inner {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1rem 0;
+      }
+      .brand {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+      }
+      .brand h1 {
+        margin: 0;
+        font-size: 1.35rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        background: linear-gradient(135deg, #fde68a, var(--accent), #fb923c);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .brand p {
+        margin: 0;
+        font-size: 0.75rem;
+        color: var(--muted);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .app-url-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.35rem;
+      }
+      a.web-link {
+        color: var(--cyan);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        font-size: 0.78rem;
+        font-family: "JetBrains Mono", monospace;
+        word-break: break-all;
+      }
+      a.web-link:hover {
+        color: #67e8f9;
+      }
+      button.btn-copy {
+        font-size: 0.72rem;
+        padding: 0.25rem 0.55rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--muted);
+        cursor: pointer;
+        font-family: inherit;
+      }
+      button.btn-copy:hover {
+        color: var(--text);
+        border-color: rgba(34, 211, 238, 0.35);
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.6rem;
+      }
+      .badge {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        padding: 0.35rem 0.75rem;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--muted);
+      }
+      .badge.live {
+        border-color: rgba(52, 211, 153, 0.4);
+        color: var(--green);
+        background: rgba(52, 211, 153, 0.1);
+      }
+      button.btn {
+        font-family: inherit;
+        font-size: 0.875rem;
+        font-weight: 600;
+        padding: 0.55rem 1rem;
+        border-radius: 10px;
+        border: none;
+        cursor: pointer;
+        transition: transform 0.12s ease, filter 0.12s ease;
+      }
+      button.btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      button.btn:not(:disabled):hover {
+        filter: brightness(1.08);
+      }
+      button.btn-primary {
+        background: linear-gradient(135deg, #d97706, var(--accent));
+        color: #0c0f14;
+      }
+      button.btn-ghost {
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+        border: 1px solid var(--border);
+      }
+      button.btn-danger {
+        background: linear-gradient(135deg, #b91c1c, #ef4444);
+        color: #fff;
+      }
+      button.hidden {
+        display: none !important;
+      }
+      main {
+        padding: 1.5rem 0 3rem;
+      }
+      .grid-metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+      }
+      .metric {
+        padding: 1.1rem 1.25rem;
+      }
+      .metric h3 {
+        margin: 0 0 0.5rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      .metric .val {
+        margin: 0;
+        font-size: 1.65rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .metric .sub {
+        margin: 0.25rem 0 0;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      .banner {
+        margin-bottom: 1rem;
+        padding: 0.75rem 1rem;
+        border-radius: 10px;
+        border: 1px solid rgba(248, 113, 113, 0.35);
+        background: rgba(248, 113, 113, 0.1);
+        color: #fecaca;
+        font-size: 0.875rem;
+      }
+      .banner.hidden {
+        display: none;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+      }
+      @media (min-width: 1100px) {
+        .layout {
+          grid-template-columns: 300px 1fr;
+          align-items: start;
+        }
+      }
+      .controls.panel {
+        padding: 1.25rem;
+      }
+      .controls h2 {
+        margin: 0 0 1rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+      }
+      .field {
+        margin-bottom: 1rem;
+      }
+      .field label {
+        display: block;
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        margin-bottom: 0.35rem;
+      }
+      .field input,
+      .field select {
+        width: 100%;
+        padding: 0.55rem 0.65rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.35);
+        color: var(--text);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.8rem;
+      }
+      .field input:focus,
+      .field select:focus {
+        outline: none;
+        border-color: rgba(245, 158, 11, 0.45);
+      }
+      .charts {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+      }
+      .chart-box {
+        padding: 1.1rem 1.25rem 0.5rem;
+      }
+      .chart-box h3 {
+        margin: 0 0 0.75rem;
+        font-size: 1rem;
+        font-weight: 600;
+      }
+      .chart-box .hint {
+        font-size: 0.75rem;
+        color: var(--muted);
+        margin: -0.25rem 0 0.75rem;
+      }
+      .h-chart {
+        height: 320px;
+      }
+      .h-chart-lg {
+        height: 400px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+      }
+      th {
+        text-align: left;
+        padding: 0.65rem 0.5rem;
+        border-bottom: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      td {
+        padding: 0.65rem 0.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      }
+      .live-float {
+        position: fixed;
+        bottom: 1.5rem;
+        right: 1.5rem;
+        padding: 1.1rem 1.25rem;
+        width: min(360px, calc(100vw - 2rem));
+        max-height: 85vh;
+        overflow-y: auto;
+        z-index: 40;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+      }
+      .live-float.hidden {
+        display: none;
+      }
+      .live-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+        font-size: 0.72rem;
+        color: var(--muted);
+        margin-top: 0.35rem;
+      }
+      .live-row span:last-child {
+        color: var(--text);
+        font-family: "JetBrains Mono", monospace;
+        text-align: right;
+      }
+      .live-divider {
+        margin: 0.65rem 0;
+        border: none;
+        border-top: 1px solid var(--border);
+      }
+      .live-log {
+        font-size: 0.68rem;
+        color: var(--muted);
+        max-height: 7rem;
+        overflow-y: auto;
+        line-height: 1.35;
+      }
+      #toast-stack {
+        position: fixed;
+        top: 5.5rem;
+        right: 1rem;
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        max-width: min(380px, calc(100vw - 2rem));
+        pointer-events: none;
+      }
+      .toast {
+        pointer-events: auto;
+        padding: 0.85rem 1rem;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: rgba(18, 24, 33, 0.97);
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+        animation: toast-in 0.35s ease-out;
+      }
+      .toast.entry {
+        border-color: rgba(245, 158, 11, 0.45);
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(18, 24, 33, 0.98));
+      }
+      .toast.setup {
+        border-color: rgba(34, 211, 238, 0.35);
+      }
+      .toast.exit {
+        border-color: rgba(167, 139, 250, 0.35);
+      }
+      @keyframes toast-in {
+        from {
+          opacity: 0;
+          transform: translateX(12px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+      .toast h4 {
+        margin: 0 0 0.25rem;
+        font-size: 0.85rem;
+      }
+      .toast p {
+        margin: 0;
+        font-size: 0.78rem;
+        color: var(--muted);
+        line-height: 1.4;
+      }
+      @keyframes live-pulse {
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+        }
+        50% {
+          box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.35);
+        }
+      }
+      .live-float.entry-alarm {
+        animation: live-pulse 0.6s ease-in-out 3;
+      }
+      .radar-panel {
+        padding: 1.1rem 1.25rem;
+        margin-bottom: 1.25rem;
+      }
+      .radar-panel.inactive {
+        opacity: 0.65;
+      }
+      .radar-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 0.75rem 1rem;
+        margin-top: 0.75rem;
+      }
+      .radar-item span:first-child {
+        display: block;
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        margin-bottom: 0.2rem;
+      }
+      .radar-item .radar-val {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.88rem;
+        font-weight: 600;
+      }
+      .strength-track {
+        height: 8px;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.06);
+        overflow: hidden;
+        margin-top: 0.35rem;
+      }
+      .live-all-wrap {
+        margin-top: 0.65rem;
+      }
+      .live-all-table {
+        width: 100%;
+        font-size: 0.72rem;
+        border-collapse: collapse;
+      }
+      .live-all-table th {
+        padding: 0.35rem 0.45rem;
+        position: sticky;
+        top: 0;
+        background: rgba(14, 18, 24, 0.98);
+        z-index: 1;
+      }
+      .live-all-table td {
+        padding: 0.35rem 0.45rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        cursor: pointer;
+      }
+      .live-all-table tr.live-all-row-sel td {
+        background: rgba(34, 211, 238, 0.1);
+      }
+      .live-all-table tr:hover td {
+        background: rgba(255, 255, 255, 0.04);
+      }
+      .strength-fill {
+        height: 100%;
+        border-radius: 4px;
+        background: linear-gradient(90deg, #6b7280, var(--cyan), var(--accent));
+        transition: width 0.4s ease;
+      }
+      .badge-entry {
+        display: inline-block;
+        padding: 0.25rem 0.6rem;
+        border-radius: 8px;
+        font-size: 0.72rem;
+        font-weight: 600;
+      }
+      .badge-entry.yes {
+        background: rgba(52, 211, 153, 0.15);
+        color: var(--green);
+        border: 1px solid rgba(52, 211, 153, 0.35);
+      }
+      .badge-entry.no {
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--muted);
+        border: 1px solid var(--border);
+      }
+      .badge-entry.arm {
+        background: rgba(245, 158, 11, 0.15);
+        color: #fcd34d;
+        border: 1px solid rgba(245, 158, 11, 0.4);
+      }
+      .alert-toggles label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.78rem;
+        color: var(--muted);
+        cursor: pointer;
+        margin-bottom: 0.45rem;
+      }
+      .alert-toggles input {
+        accent-color: var(--accent);
+      }
+      .btn-small {
+        font-size: 0.72rem;
+        padding: 0.35rem 0.65rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+        cursor: pointer;
+        font-family: inherit;
+        width: 100%;
+        margin-top: 0.35rem;
+      }
+      .btn-small:hover {
+        border-color: rgba(34, 211, 238, 0.35);
+      }
+      .ops-strip {
+        border-bottom: 1px solid var(--border);
+        background: rgba(12, 15, 20, 0.65);
+      }
+      .ops-inner {
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 0.45rem 1.25rem 0.55rem;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.65rem 1.1rem;
+        font-size: 0.72rem;
+        color: var(--muted);
+      }
+      .ops-inner .mono {
+        font-size: 0.7rem;
+      }
+      .ops-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+      }
+      .ops-ok {
+        color: var(--green);
+      }
+      .ops-bad {
+        color: var(--red);
+      }
+      .ops-kill-on {
+        border-color: rgba(248, 113, 113, 0.45);
+        color: #fecaca;
+        background: rgba(248, 113, 113, 0.12);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="top">
+      <div class="wrap header-inner">
+        <div class="brand">
+          <h1>AutoResearchClaw</h1>
+          <p>ICT research · Backtest · Paper trading</p>
+          <div class="app-url-row">
+            <a id="dashboard-url" class="web-link" href="/">Loading…</a>
+            <button type="button" id="copy-url-btn" class="btn-copy" title="Copy dashboard URL">Copy link</button>
+          </div>
+        </div>
+        <div class="toolbar">
+          <a href="/live" class="web-link" style="font-size: 0.8rem; font-weight: 600; text-decoration: none; margin-right: 0.25rem"
+            >Live watch</a
+          >
+          <span id="status-badge" class="badge">Backtest</span>
+          <button type="button" id="paper-start-btn" class="btn btn-ghost">Start paper</button>
+          <button type="button" id="paper-stop-btn" class="btn btn-danger hidden">Stop paper</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="ops-strip" aria-label="Exchange and session status">
+      <div class="ops-inner">
+        <span class="ops-pill"
+          ><span>Binance spot</span> <span id="ops-spot" class="mono ops-ok">—</span></span
+        >
+        <span class="ops-pill"
+          ><span>USDM futures</span> <span id="ops-fut" class="mono ops-ok">—</span></span
+        >
+        <span class="ops-pill"><span>Spec</span> <span id="ops-spec" class="mono">—</span></span>
+        <span class="ops-pill" id="ops-kill-wrap"><span>Gates</span> <span id="ops-kill" class="mono">—</span></span>
+        <span class="ops-pill"><span>Kill zones (UTC)</span> <span id="ops-kz" class="mono">—</span></span>
+      </div>
+    </div>
+
+    <main class="wrap">
+      <div id="toast-stack" aria-live="polite"></div>
+
+      <div id="entry-radar" class="panel radar-panel inactive">
+        <h3 style="margin: 0 0 0.35rem; font-size: 1rem">Entry radar &amp; alarms</h3>
+        <p id="radar-hint" style="margin: 0; font-size: 0.78rem; color: var(--muted)">
+          Start <strong>paper trading</strong> for live ICT bias, strength meter, and entry alarms (sound + optional desktop
+          notification).
+        </p>
+        <div id="radar-body" class="radar-grid" style="display: none">
+          <div class="radar-item">
+            <span>Bias</span>
+            <span id="radar-bias" class="radar-val">—</span>
+          </div>
+          <div class="radar-item">
+            <span>Zone</span>
+            <span id="radar-zone" class="radar-val">—</span>
+          </div>
+          <div class="radar-item" style="grid-column: 1 / -1">
+            <span>Signal strength</span>
+            <div class="strength-track"><div id="radar-strength-fill" class="strength-fill" style="width: 0%"></div></div>
+            <span id="radar-strength-lbl" class="radar-val" style="font-size: 0.8rem; margin-top: 0.25rem">0%</span>
+          </div>
+          <div class="radar-item">
+            <span>Confluence</span>
+            <span id="radar-conf" class="radar-val">—</span>
+          </div>
+          <div class="radar-item">
+            <span>Entry filter</span>
+            <span id="radar-entry-badge" class="badge-entry no">Waiting</span>
+          </div>
+          <div class="radar-item">
+            <span>Last bar (UTC)</span>
+            <span id="radar-bar" class="radar-val" style="font-size: 0.75rem">—</span>
+          </div>
+        </div>
+        <div id="live-all-wrap" class="live-all-wrap" style="display: none">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem">
+            <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted)">Live all · watchlist</span>
+            <button type="button" id="live-all-reset-focus-btn" class="btn btn-ghost" style="font-size: 0.72rem; padding: 0.3rem 0.65rem">
+              Auto focus
+            </button>
+          </div>
+          <div style="overflow-x: auto; max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px">
+            <table class="live-all-table">
+              <thead>
+                <tr>
+                  <th>Symbol</th>
+                  <th>Bias</th>
+                  <th>Str</th>
+                  <th>Conf</th>
+                  <th>Pos</th>
+                </tr>
+              </thead>
+              <tbody id="live-all-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="metrics-banner" class="banner hidden"></div>
+
+      <div class="panel radar-panel" style="padding: 0.85rem 1.1rem; margin-bottom: 1.15rem">
+        <div style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-bottom: 0.35rem">
+          Regime log (Atlas-style)
+        </div>
+        <p id="last-run-strip-text" style="margin: 0; font-size: 0.82rem; color: var(--muted); line-height: 1.45">
+          Each successful backtest saves metrics + <strong>vol/trend regime tag</strong> to
+          <code style="color: var(--cyan)">data/runs.sqlite3</code> for comparison across market conditions.
+        </p>
+      </div>
+
+      <div class="panel radar-panel" id="playbook-panel" style="padding: 0.85rem 1.1rem; margin-bottom: 1.15rem">
+        <div
+          style="
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+          "
+        >
+          <div style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted)">
+            Trade playbook &amp; ledger
+          </div>
+          <button type="button" id="playbook-refresh-btn" class="btn-copy" style="font-size: 0.72rem">Refresh</button>
+        </div>
+        <p style="margin: 0 0 0.5rem; font-size: 0.75rem; color: var(--muted); line-height: 1.45">
+          Opens, scale-outs, and stops from <strong>paper</strong> and <strong>backtest</strong> with entry/exit reasons for review —
+          <code style="color: var(--cyan)">data/playbook.sqlite3</code>. Edit <code class="mono">strategy/spec.yaml</code> →
+          <span class="mono">market.watchlist</span> for the 10 pairs polled in paper (capital split evenly).
+        </p>
+        <div style="overflow-x: auto; max-height: 240px; overflow-y: auto">
+          <table style="width: 100%; font-size: 0.72rem; border-collapse: collapse">
+            <thead>
+              <tr style="text-align: left; color: var(--muted)">
+                <th style="padding: 0.35rem 0.5rem">When (UTC)</th>
+                <th style="padding: 0.35rem 0.5rem">Mode</th>
+                <th style="padding: 0.35rem 0.5rem">Sym</th>
+                <th style="padding: 0.35rem 0.5rem">Event</th>
+                <th style="padding: 0.35rem 0.5rem">P&amp;L</th>
+                <th style="padding: 0.35rem 0.5rem">Reason</th>
+              </tr>
+            </thead>
+            <tbody id="playbook-tbody">
+              <tr>
+                <td colspan="6" style="color: var(--muted); padding: 0.75rem">Loading…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel radar-panel" id="research-lab-panel" style="padding: 0.85rem 1.1rem; margin-bottom: 1.15rem">
+        <div style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-bottom: 0.35rem">
+          Research lab (AutoQuant-style)
+        </div>
+        <p style="margin: 0 0 0.65rem; font-size: 0.75rem; color: var(--muted); line-height: 1.45">
+          <strong>Walk-forward</strong>: 70/30 train vs held-out test, composite score (OOS Sharpe weighted over in-sample).
+          <strong>Stress</strong>: same ICT rules on crisis date slices. <strong>Evolve</strong>: small random search + selection; top genomes
+          re-scored with crisis penalty (silent backtests — no playbook spam). Uses backtest fields on the left.
+          <strong>Apply</strong> pushes rank-1 genes into the running server (backtest + paper + lab) until <strong>Reset</strong> or restart — does not
+          write <span class="mono">strategy/spec.yaml</span>.
+        </p>
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.65rem">
+          <button type="button" id="research-wf-btn" class="btn btn-ghost" style="font-size: 0.8rem">Walk-forward OOS</button>
+          <button type="button" id="research-stress-btn" class="btn btn-ghost" style="font-size: 0.8rem">Crisis stress</button>
+          <button type="button" id="research-evolve-btn" class="btn btn-primary" style="font-size: 0.8rem">Evolve genes</button>
+          <button type="button" id="research-apply-top-btn" class="btn btn-ghost" style="font-size: 0.8rem">Apply rank #1 genes</button>
+          <button type="button" id="research-reset-btn" class="btn btn-ghost" style="font-size: 0.8rem">Reset to spec.yaml</button>
+          <button type="button" id="research-runtime-btn" class="btn btn-ghost" style="font-size: 0.8rem">Show runtime config</button>
+        </div>
+        <div
+          style="
+            margin: 0.75rem 0 0.65rem;
+            padding-top: 0.65rem;
+            border-top: 1px solid var(--border);
+          "
+        >
+          <div style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-bottom: 0.35rem">
+            Kill-zone autoresearch
+          </div>
+          <p style="margin: 0 0 0.55rem; font-size: 0.72rem; color: var(--muted); line-height: 1.45">
+            On <span class="mono">KZ_AUTO_RESEARCH=1</span>, the server queues evolution when UTC session leaves a kill zone (debounced). Runs are stored in
+            <span class="mono">data/kz_research.sqlite3</span>. Manual run uses the same lighter pipeline as the auto job.
+          </p>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem">
+            <button type="button" id="kz-runs-refresh-btn" class="btn btn-ghost" style="font-size: 0.8rem">Refresh KZ runs</button>
+            <button type="button" id="kz-run-now-btn" class="btn btn-ghost" style="font-size: 0.8rem">Run KZ job now</button>
+          </div>
+          <div style="overflow-x: auto; border: 1px solid var(--border); border-radius: 10px">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.68rem">
+              <thead>
+                <tr style="text-align: left; color: var(--muted); border-bottom: 1px solid var(--border)">
+                  <th style="padding: 0.35rem 0.5rem">UTC</th>
+                  <th style="padding: 0.35rem 0.5rem">Trigger</th>
+                  <th style="padding: 0.35rem 0.5rem">Sym</th>
+                  <th style="padding: 0.35rem 0.5rem">TF</th>
+                  <th style="padding: 0.35rem 0.5rem">Fit fast</th>
+                  <th style="padding: 0.35rem 0.5rem">Fit+crisis</th>
+                  <th style="padding: 0.35rem 0.5rem">Status</th>
+                </tr>
+              </thead>
+              <tbody id="kz-runs-tbody">
+                <tr>
+                  <td colspan="7" style="color: var(--muted); padding: 0.75rem">Loading…</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <pre
+          id="research-lab-out"
+          class="mono"
+          style="
+            display: none;
+            margin: 0;
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.68rem;
+            white-space: pre-wrap;
+            max-height: 360px;
+            overflow: auto;
+            color: var(--text);
+          "
+        ></pre>
+      </div>
+
+      <div class="grid-metrics">
+        <div class="panel metric">
+          <h3>Total P&amp;L</h3>
+          <p id="metric-pnl" class="val mono" style="color: var(--green)">$0.00</p>
+          <p id="metric-pnl-pct" class="sub mono">0.00%</p>
+        </div>
+        <div class="panel metric">
+          <h3>Win rate</h3>
+          <p id="metric-winrate" class="val mono" style="color: var(--cyan)">0%</p>
+          <p class="sub"><span id="metric-wins">0</span>W / <span id="metric-losses">0</span>L</p>
+        </div>
+        <div class="panel metric">
+          <h3>Sharpe</h3>
+          <p id="metric-sharpe" class="val mono" style="color: #a78bfa">0.00</p>
+          <p class="sub">Risk-adjusted</p>
+        </div>
+        <div class="panel metric">
+          <h3>Max drawdown</h3>
+          <p id="metric-dd" class="val mono" style="color: var(--red)">0%</p>
+          <p class="sub">Peak to trough</p>
+        </div>
+        <div class="panel metric">
+          <h3>Total trades</h3>
+          <p id="metric-trades" class="val mono">0</p>
+          <p id="metric-final-cap" class="sub mono">Final —</p>
+        </div>
+        <div class="panel metric">
+          <h3>Profit factor</h3>
+          <p id="metric-pf" class="val mono">—</p>
+          <p id="metric-exp" class="sub mono">E —</p>
+        </div>
+      </div>
+
+      <div class="layout">
+        <aside class="controls panel">
+          <h2>Backtest</h2>
+          <div class="field">
+            <label for="inp-symbol">Symbol</label>
+            <input id="inp-symbol" type="text" value="BTCUSDT" placeholder="BTCUSDT" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="inp-tf">Timeframe</label>
+            <select id="inp-tf">
+              <option value="15m" selected>15m</option>
+              <option value="5m">5m</option>
+              <option value="1h">1h</option>
+              <option value="4h">4h</option>
+              <option value="1d">1d</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="inp-start">Start</label>
+            <input id="inp-start" type="date" value="2024-01-01" />
+          </div>
+          <div class="field">
+            <label for="inp-end">End</label>
+            <input id="inp-end" type="date" value="2024-12-31" />
+          </div>
+          <div class="field">
+            <label for="inp-capital">Initial capital ($)</label>
+            <input id="inp-capital" type="number" min="100" step="100" value="10000" />
+          </div>
+          <button type="button" id="backtest-btn" class="btn btn-primary" style="width: 100%">Run backtest</button>
+
+          <h2 style="margin: 1.25rem 0 0.65rem">Live alerts</h2>
+          <p style="margin: 0 0 0.5rem; font-size: 0.72rem; color: var(--muted)">
+            Entry = when paper engine opens a position (matches backtest rules).
+          </p>
+          <div class="alert-toggles">
+            <label><input type="checkbox" id="alert-sound-entry" checked /> Sound on entry</label>
+            <label><input type="checkbox" id="alert-sound-setup" checked /> Sound on “armed” setup</label>
+            <label><input type="checkbox" id="alert-notify" checked /> Desktop notification</label>
+            <label><input type="checkbox" id="alert-flash" checked /> Flash tab title + pulse panel</label>
+          </div>
+          <button type="button" class="btn-small" id="alert-permission-btn">Allow browser notifications</button>
+
+          <h2 style="margin: 1.25rem 0 0.65rem">Research suggest</h2>
+          <p style="margin: 0 0 0.5rem; font-size: 0.72rem; color: var(--muted)">
+            Heuristics from your stored runs (same spirit as ATLAS autoresearch-lite). Set
+            <code>OPENAI_API_KEY</code> for an optional LLM layer on top.
+          </p>
+          <label style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; color: var(--muted); cursor: pointer">
+            <input type="checkbox" id="suggest-use-llm" style="accent-color: var(--accent)" />
+            Use OpenAI (<span class="mono">gpt-4o-mini</span>)
+          </label>
+          <button type="button" id="suggest-btn" class="btn btn-ghost" style="width: 100%; margin-top: 0.5rem">
+            Generate suggestions
+          </button>
+          <p id="suggest-source" style="margin: 0.4rem 0 0; font-size: 0.65rem; color: var(--muted)"></p>
+          <pre
+            id="suggest-output"
+            class="mono"
+            style="
+              display: none;
+              margin-top: 0.5rem;
+              padding: 0.75rem;
+              background: rgba(0, 0, 0, 0.35);
+              border: 1px solid var(--border);
+              border-radius: 10px;
+              font-size: 0.72rem;
+              white-space: pre-wrap;
+              max-height: 280px;
+              overflow: auto;
+              color: var(--text);
+            "
+          ></pre>
+        </aside>
+
+        <div class="charts">
+          <div class="panel chart-box">
+            <h3 id="price-title">Price</h3>
+            <p id="price-hint" class="hint">Run a backtest to load OHLC from Binance for this range.</p>
+            <div id="price-chart" class="h-chart-lg"></div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr; gap: 1.25rem">
+            <div class="panel chart-box" style="margin: 0">
+              <h3>Equity curve</h3>
+              <div id="equity-chart" class="h-chart"></div>
+            </div>
+            <div class="panel chart-box" style="margin: 0">
+              <h3>Signal strength (last 100 bars)</h3>
+              <div id="signal-chart" class="h-chart"></div>
+            </div>
+          </div>
+          <div class="panel chart-box">
+            <h3>Recent trades</h3>
+            <div style="overflow-x: auto; margin-top: 0.5rem">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Side</th>
+                    <th>Entry</th>
+                    <th>Exit</th>
+                    <th>P&amp;L</th>
+                    <th>P&amp;L %</th>
+                  </tr>
+                </thead>
+                <tbody id="trades-table">
+                  <tr>
+                    <td colspan="6" style="text-align: center; color: var(--muted); padding: 2rem">Run backtest to see trades</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <div id="live-signal" class="live-float panel hidden">
+      <h3 style="margin: 0 0 0.5rem; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted)">
+        Live — ICT paper <span id="live-focus-label" class="mono" style="color: var(--cyan); font-weight: 600"></span>
+      </h3>
+      <p id="live-signal-text" class="val" style="font-size: 1.35rem; margin: 0">NEUTRAL</p>
+      <p id="live-signal-strength" style="margin: 0.35rem 0 0; font-size: 0.75rem; color: var(--muted)">Strength: 0% · conf. —</p>
+      <p id="live-price" class="mono" style="margin: 0.45rem 0 0; font-size: 1rem">$0.00</p>
+      <div id="live-levels" style="display: none; margin-top: 0.65rem">
+        <div class="live-row"><span>Position left</span><span id="live-pct">100%</span></div>
+        <div class="live-row"><span>Bars in trade</span><span id="live-bars">0</span></div>
+        <div class="live-row"><span>Unrealized</span><span id="live-unreal">$0</span></div>
+        <div class="live-row"><span>Entry</span><span id="live-entry">—</span></div>
+        <div class="live-row"><span>Stop (ICT+ATR)</span><span id="live-sl">—</span></div>
+        <div class="live-row"><span>TP1 (1R)</span><span id="live-tp1">—</span></div>
+        <div class="live-row"><span>TP2 (2R)</span><span id="live-tp2">—</span></div>
+        <div class="live-row"><span>TP3 (3R)</span><span id="live-tp3">—</span></div>
+        <div class="live-row"><span>Price vs risk (R)</span><span id="live-rr">—</span></div>
+      </div>
+      <hr class="live-divider" />
+      <p style="margin: 0 0 0.35rem; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted)">
+        Events
+      </p>
+      <div id="live-log" class="live-log"></div>
+    </div>
+
+    <script>
+      (function setupDashboardWebLink() {
+        const url =
+          window.location.origin + window.location.pathname.replace(/\/+$/, "") + "/";
+        const normalized = url.replace(/([^:]\/)\/+/g, "$1");
+        const a = document.getElementById("dashboard-url");
+        const btn = document.getElementById("copy-url-btn");
+        if (a) {
+          a.href = normalized;
+          a.textContent = normalized;
+        }
+        if (btn) {
+          btn.addEventListener("click", async () => {
+            const u = a ? a.href : normalized;
+            try {
+              await navigator.clipboard.writeText(u);
+              const prev = btn.textContent;
+              btn.textContent = "Copied";
+              setTimeout(() => {
+                btn.textContent = prev;
+              }, 1600);
+            } catch (e) {
+              prompt("Copy this URL:", u);
+            }
+          });
+        }
+      })();
+
+      async function refreshOpsStrip() {
+        const spotEl = document.getElementById("ops-spot");
+        const futEl = document.getElementById("ops-fut");
+        const specEl = document.getElementById("ops-spec");
+        const killEl = document.getElementById("ops-kill");
+        const killWrap = document.getElementById("ops-kill-wrap");
+        const kzEl = document.getElementById("ops-kz");
+        if (!spotEl || !futEl) return;
+        try {
+          const [hRes, sRes] = await Promise.all([fetch("/api/health"), fetch("/api/session")]);
+          const h = await hRes.json();
+          const sj = await sRes.json();
+          const sess = sj.session || {};
+
+          const fmt = (node, ok, ms) => {
+            node.classList.remove("ops-ok", "ops-bad");
+            if (ok) {
+              node.classList.add("ops-ok");
+              node.textContent = ms != null ? "OK · " + ms + "ms" : "OK";
+            } else {
+              node.classList.add("ops-bad");
+              node.textContent = "down";
+            }
+          };
+
+          const bs = h.binance_spot || {};
+          const bf = h.binance_usdm_futures || {};
+          fmt(spotEl, bs.reachable, bs.latency_ms);
+          fmt(futEl, bf.reachable, bf.latency_ms);
+
+          const meta = h.spec || {};
+          const ver = meta.spec_version != null ? String(meta.spec_version) : "—";
+          const name = meta.name ? " · " + meta.name : "";
+          if (specEl) specEl.textContent = ver + name;
+
+          const ks = h.gates && h.gates.kill_switch;
+          if (killEl && killWrap) {
+            killWrap.classList.toggle("ops-kill-on", !!ks);
+            killEl.classList.remove("ops-ok", "ops-bad");
+            killEl.textContent = ks ? "kill_switch ON" : "open";
+            killEl.classList.add(ks ? "ops-bad" : "ops-ok");
+          }
+
+          const active = sess.active_kill_zones || [];
+          if (kzEl) {
+            kzEl.classList.remove("ops-ok", "ops-bad");
+            if (active.length) {
+              kzEl.classList.add("ops-ok");
+              kzEl.textContent = active.join(", ");
+            } else {
+              kzEl.textContent = "outside window";
+            }
+          }
+        } catch {
+          spotEl.classList.remove("ops-ok");
+          spotEl.classList.add("ops-bad");
+          spotEl.textContent = "—";
+          futEl.classList.remove("ops-ok");
+          futEl.classList.add("ops-bad");
+          futEl.textContent = "—";
+        }
+      }
+      refreshOpsStrip();
+      setInterval(refreshOpsStrip, 30000);
+
+      const ENTRY_MIN_STRENGTH = 65;
+      const ENTRY_MIN_CONF = 2;
+      const ARMED_MIN_STRENGTH = 62;
+
+      let paperLiveActive = false;
+      let lastLivePayload = null;
+      let lastArmedAlertBarBySym = {};
+      let lastPerSymbolSocket = null;
+      let dashboardLiveFocusSymbol = null;
+      let titleRestoreTimer = null;
+      const baseTitle = document.title;
+
+      const LS = {
+        soundEntry: "arc_alert_sound_entry",
+        soundSetup: "arc_alert_sound_setup",
+        notify: "arc_alert_notify",
+        flash: "arc_alert_flash",
+      };
+
+      function loadAlertPrefs() {
+        const g = (k, def) => (localStorage.getItem(k) === null ? def : localStorage.getItem(k) === "1");
+        const se = document.getElementById("alert-sound-entry");
+        const ss = document.getElementById("alert-sound-setup");
+        const n = document.getElementById("alert-notify");
+        const f = document.getElementById("alert-flash");
+        if (se) se.checked = g(LS.soundEntry, true);
+        if (ss) ss.checked = g(LS.soundSetup, true);
+        if (n) n.checked = g(LS.notify, true);
+        if (f) f.checked = g(LS.flash, true);
+      }
+
+      function saveAlertPrefs() {
+        const s = (el) => (el && el.checked ? "1" : "0");
+        const se = document.getElementById("alert-sound-entry");
+        const ss = document.getElementById("alert-sound-setup");
+        const n = document.getElementById("alert-notify");
+        const f = document.getElementById("alert-flash");
+        localStorage.setItem(LS.soundEntry, s(se));
+        localStorage.setItem(LS.soundSetup, s(ss));
+        localStorage.setItem(LS.notify, s(n));
+        localStorage.setItem(LS.flash, s(f));
+      }
+
+      loadAlertPrefs();
+      ["alert-sound-entry", "alert-sound-setup", "alert-notify", "alert-flash"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener("change", saveAlertPrefs);
+      });
+
+      document.getElementById("alert-permission-btn")?.addEventListener("click", async () => {
+        if (!("Notification" in window)) {
+          showToast("Notifications", "This browser does not support desktop notifications.", "setup");
+          return;
+        }
+        const p = await Notification.requestPermission();
+        showToast("Notifications", p === "granted" ? "Enabled — you will get entry alerts." : "Permission not granted.", p === "granted" ? "entry" : "setup");
+      });
+
+      function getAudioCtx() {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        if (!window.__arcAC) window.__arcAC = new AC();
+        const ctx = window.__arcAC;
+        if (ctx.state === "suspended") ctx.resume();
+        return ctx;
+      }
+
+      function beep(freq, dur, vol) {
+        const ctx = getAudioCtx();
+        if (!ctx) return;
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.frequency.value = freq;
+        o.type = "sine";
+        const v = vol != null ? vol : 0.07;
+        g.gain.setValueAtTime(v, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+        o.start();
+        o.stop(ctx.currentTime + dur);
+      }
+
+      function playEntryAlarm() {
+        beep(880, 0.11, 0.09);
+        setTimeout(() => beep(1174, 0.14, 0.08), 120);
+        setTimeout(() => beep(1568, 0.16, 0.07), 260);
+      }
+
+      function playSetupChime() {
+        beep(659, 0.1, 0.06);
+        setTimeout(() => beep(880, 0.12, 0.06), 100);
+      }
+
+      function playExitChime() {
+        beep(392, 0.12, 0.05);
+      }
+
+      function showToast(title, body, kind) {
+        const stack = document.getElementById("toast-stack");
+        if (!stack) return;
+        const t = document.createElement("div");
+        t.className = "toast " + (kind || "");
+        const h4 = document.createElement("h4");
+        h4.textContent = title;
+        const p = document.createElement("p");
+        p.textContent = body;
+        t.appendChild(h4);
+        t.appendChild(p);
+        stack.appendChild(t);
+        setTimeout(() => {
+          t.style.opacity = "0";
+          t.style.transform = "translateX(8px)";
+          t.style.transition = "opacity 0.35s, transform 0.35s";
+          setTimeout(() => t.remove(), 400);
+        }, 5200);
+      }
+
+      function pushBrowserNotify(title, body) {
+        const n = document.getElementById("alert-notify");
+        if (!n || !n.checked) return;
+        if (!("Notification" in window) || Notification.permission !== "granted") return;
+        try {
+          new Notification(title, { body: body });
+        } catch (e) {
+          /* ignore */
+        }
+      }
+
+      function flashTabTitle(msg) {
+        const f = document.getElementById("alert-flash");
+        if (!f || !f.checked) return;
+        clearTimeout(titleRestoreTimer);
+        document.title = msg;
+        titleRestoreTimer = setTimeout(() => {
+          document.title = baseTitle;
+        }, 2800);
+      }
+
+      function pulseLivePanel() {
+        const f = document.getElementById("alert-flash");
+        const el = document.getElementById("live-signal");
+        if (!f || !f.checked || !el) return;
+        el.classList.remove("entry-alarm");
+        void el.offsetWidth;
+        el.classList.add("entry-alarm");
+        setTimeout(() => el.classList.remove("entry-alarm"), 2000);
+      }
+
+      function triggerEntryAlarm(side, price, sl, symbol, reasonText) {
+        const se = document.getElementById("alert-sound-entry");
+        if (se && se.checked) playEntryAlarm();
+        const symLbl = symbol ? symbol + " · " : "";
+        const sub = reasonText
+          ? String(reasonText).slice(0, 160)
+          : "Price $" + price + " · Stop $" + sl + " · TPs at 1R / 2R / 3R";
+        pushBrowserNotify(symLbl + "ICT entry — " + side, "@ $" + price + " · SL $" + sl);
+        showToast(symLbl + "Entry — " + side, sub, "entry");
+        flashTabTitle("ENTRY " + side + " · AutoResearchClaw");
+        pulseLivePanel();
+        try {
+          navigator.vibrate?.(120);
+        } catch (e) {
+          /* ignore */
+        }
+      }
+
+      function updateEntryRadar(data) {
+        const panel = document.getElementById("entry-radar");
+        const body = document.getElementById("radar-body");
+        const hint = document.getElementById("radar-hint");
+        if (!paperLiveActive || !data) {
+          if (panel) panel.classList.add("inactive");
+          if (body) body.style.display = "none";
+          if (hint)
+            hint.innerHTML =
+              'Start <strong>paper trading</strong> for live ICT bias, strength meter, and entry alarms (sound + optional desktop notification).';
+          return;
+        }
+        panel.classList.remove("inactive");
+        body.style.display = "grid";
+        if (data._watchlist && data._watchlist.length > 1) {
+          hint.textContent =
+            "Live all: " +
+            data._watchlist.length +
+            " symbols — setup chimes run for each symbol. Radar and the live float follow focus (open position first, or pick a row below). Entry alarms still use strength ≥" +
+            ENTRY_MIN_STRENGTH +
+            "% and confluence ≥" +
+            ENTRY_MIN_CONF +
+            ".";
+        } else {
+          hint.textContent =
+            "Live feed from paper engine — alarms use the same filters as the backtester (strength ≥65, confluence ≥2).";
+        }
+
+        const sig = Number(data.signal || 0);
+        const s = Number(data.signal_strength || 0);
+        const c = Number(data.confluence != null ? data.confluence : 0);
+        const pos = Number(data.position || 0);
+
+        let bias = "Neutral";
+        if (pos === 1) bias = "In LONG";
+        else if (pos === -1) bias = "In SHORT";
+        else if (sig === 1) bias = "Long bias";
+        else if (sig === -1) bias = "Short bias";
+        document.getElementById("radar-bias").textContent = bias;
+
+        let zone = "—";
+        if (data.premium) zone = "Premium";
+        else if (data.discount) zone = "Discount";
+        document.getElementById("radar-zone").textContent = zone;
+
+        const pct = Math.min(100, Math.max(0, s));
+        document.getElementById("radar-strength-fill").style.width = pct + "%";
+        document.getElementById("radar-strength-lbl").textContent = pct.toFixed(0) + "% (min " + ENTRY_MIN_STRENGTH + "% to qualify)";
+        document.getElementById("radar-conf").textContent = c + " / 4 (min " + ENTRY_MIN_CONF + ")";
+
+        const badge = document.getElementById("radar-entry-badge");
+        const meets = sig !== 0 && s >= ENTRY_MIN_STRENGTH && c >= ENTRY_MIN_CONF;
+        const armed = sig !== 0 && s >= ARMED_MIN_STRENGTH && c >= ENTRY_MIN_CONF;
+        if (pos !== 0) {
+          badge.textContent = "In position";
+          badge.className = "badge-entry yes";
+        } else if (meets) {
+          badge.textContent = "Qualified";
+          badge.className = "badge-entry yes";
+        } else if (armed) {
+          badge.textContent = "Armed (near)";
+          badge.className = "badge-entry arm";
+        } else {
+          badge.textContent = "Not yet";
+          badge.className = "badge-entry no";
+        }
+
+        const ts = data.timestamp || "";
+        document.getElementById("radar-bar").textContent = ts ? ts.slice(0, 19).replace("T", " ") : "—";
+      }
+
+      function maybeSetupAlertsForSymbol(sym, data) {
+        if (!paperLiveActive || !data) return;
+        const pos = Number(data.position || 0);
+        if (pos !== 0) return;
+        const sig = Number(data.signal || 0);
+        if (sig === 0) return;
+        const s = Number(data.signal_strength || 0);
+        const c = Number(data.confluence != null ? data.confluence : 0);
+        const barKey = String(sym) + "|" + String(data.timestamp || "") + "|" + sig;
+        const prev = lastArmedAlertBarBySym[sym];
+        if (s < ARMED_MIN_STRENGTH || c < ENTRY_MIN_CONF || barKey === prev) return;
+        lastArmedAlertBarBySym[sym] = barKey;
+        const ss = document.getElementById("alert-sound-setup");
+        if (ss && ss.checked) playSetupChime();
+        const side = sig === 1 ? "LONG" : "SHORT";
+        const symBit = sym && String(sym) !== "_" ? "[" + sym + "] " : "";
+        pushBrowserNotify(
+          symBit + "Setup armed — " + side,
+          "Strength " + s + "% · confluence " + c + " — near entry (need " + ENTRY_MIN_STRENGTH + "% & " + ENTRY_MIN_CONF + "+)"
+        );
+        showToast(
+          symBit + "Armed — near entry",
+          side + " · " + s + "% · conf " + c + " — opens when strength ≥" + ENTRY_MIN_STRENGTH + "% and confluence ≥" + ENTRY_MIN_CONF,
+          "setup"
+        );
+      }
+
+      function maybeSetupAlerts(data) {
+        if (!paperLiveActive || !data) return;
+        if (data._perSymbol && typeof data._perSymbol === "object") {
+          for (const [sym, p] of Object.entries(data._perSymbol)) {
+            maybeSetupAlertsForSymbol(sym, p);
+          }
+          return;
+        }
+        const sym = data.symbol || data._focusSymbol || "_";
+        maybeSetupAlertsForSymbol(sym, data);
+      }
+
+      const socket = io();
+      const plotlyDark = {
+        paper_bgcolor: "rgba(0,0,0,0)",
+        plot_bgcolor: "rgba(0,0,0,0)",
+        font: { color: "#e8eaef", family: "DM Sans, sans-serif" },
+        margin: { t: 16, r: 16, b: 40, l: 56 },
+        xaxis: { gridcolor: "rgba(255,255,255,0.06)", zeroline: false },
+        yaxis: { gridcolor: "rgba(255,255,255,0.06)", zeroline: false },
+      };
+
+      socket.on("connect", () => console.log("Socket connected"));
+
+      function normalizeLivePayload(data) {
+        if (data && data.per_symbol && typeof data.per_symbol === "object") {
+          const keys = Object.keys(data.per_symbol);
+          if (keys.length === 0) return data;
+          let focus = keys[0];
+          if (dashboardLiveFocusSymbol && data.per_symbol[dashboardLiveFocusSymbol]) {
+            focus = dashboardLiveFocusSymbol;
+          } else {
+            for (const k of keys) {
+              if (Number(data.per_symbol[k].position || 0) !== 0) {
+                focus = k;
+                break;
+              }
+            }
+          }
+          const slice = { ...data.per_symbol[focus] };
+          slice._focusSymbol = focus;
+          slice._watchlist = data.watchlist || keys;
+          slice._perSymbol = data.per_symbol;
+          return slice;
+        }
+        if (data && typeof data === "object") {
+          const o = { ...data };
+          if (!o._focusSymbol && o.symbol) o._focusSymbol = o.symbol;
+          return o;
+        }
+        return data;
+      }
+
+      function escHtml(s) {
+        if (s == null || s === "") return "";
+        const d = document.createElement("div");
+        d.textContent = String(s);
+        return d.innerHTML;
+      }
+
+      function liveAllBiasLabel(p) {
+        const pos = Number(p.position || 0);
+        if (pos === 1) return "IN L";
+        if (pos === -1) return "IN S";
+        const g = Number(p.signal || 0);
+        if (g === 1) return "LONG";
+        if (g === -1) return "SHORT";
+        return "—";
+      }
+
+      function renderDashboardLiveAllTable(data) {
+        const wrap = document.getElementById("live-all-wrap");
+        const tbody = document.getElementById("live-all-tbody");
+        if (!wrap || !tbody) return;
+        if (!paperLiveActive || !data || !data._perSymbol) {
+          wrap.style.display = "none";
+          return;
+        }
+        const wl = data._watchlist && data._watchlist.length ? data._watchlist : Object.keys(data._perSymbol);
+        if (wl.length < 2) {
+          wrap.style.display = "none";
+          return;
+        }
+        wrap.style.display = "block";
+        const focusSym = data._focusSymbol || data.symbol || "";
+        tbody.innerHTML = wl
+          .map((sym) => {
+            const p = data._perSymbol[sym] || {};
+            const bias = liveAllBiasLabel(p);
+            const cls = bias.includes("L") && bias !== "—" ? "long" : bias.includes("S") && bias !== "—" ? "short" : "";
+            const pos = Number(p.position || 0);
+            const posTxt = pos === 0 ? "—" : pos === 1 ? "L" : "S";
+            const rowSel = focusSym === sym ? " live-all-row-sel" : "";
+            return (
+              "<tr class=\"live-all-row" +
+              rowSel +
+              "\" data-sym=\"" +
+              escHtml(sym) +
+              "\"><td class=\"mono\">" +
+              escHtml(sym) +
+              "</td><td class=\"" +
+              cls +
+              "\">" +
+              escHtml(bias) +
+              "</td><td class=\"mono\">" +
+              (p.signal_strength != null ? escHtml(String(Math.round(Number(p.signal_strength)))) + "%" : "—") +
+              "</td><td class=\"mono\">" +
+              (p.confluence != null ? escHtml(String(p.confluence)) : "—") +
+              "</td><td class=\"mono\">" +
+              escHtml(posTxt) +
+              "</td></tr>"
+            );
+          })
+          .join("");
+        tbody.querySelectorAll("tr.live-all-row").forEach((row) => {
+          row.addEventListener("click", () => {
+            const s = row.getAttribute("data-sym");
+            if (s) dashboardLiveFocusSymbol = s;
+            if (lastPerSymbolSocket) updateLiveSignal(normalizeLivePayload(lastPerSymbolSocket));
+          });
+        });
+      }
+
+      document.getElementById("live-all-reset-focus-btn")?.addEventListener("click", () => {
+        dashboardLiveFocusSymbol = null;
+        if (lastPerSymbolSocket) updateLiveSignal(normalizeLivePayload(lastPerSymbolSocket));
+      });
+
+      async function loadPlaybook() {
+        const tb = document.getElementById("playbook-tbody");
+        if (!tb) return;
+        try {
+          const r = await fetch("/api/playbook?limit=40");
+          const j = await r.json();
+          if (!j.success) throw new Error("Playbook request failed");
+          const evs = j.events || [];
+          if (evs.length === 0) {
+            tb.innerHTML =
+              '<tr><td colspan="6" style="color:var(--muted);padding:0.75rem">No events yet — run a backtest or start paper trading.</td></tr>';
+            return;
+          }
+          tb.innerHTML = evs
+            .map((e) => {
+              const pnl = e.pnl != null ? "$" + Number(e.pnl).toFixed(2) : "—";
+              const why = escHtml(e.exit_reason_text || e.entry_reason_text || "—");
+              const t = escHtml((e.created_at || "").slice(0, 19).replace("T", " "));
+              return (
+                "<tr><td class=\"mono\">" +
+                t +
+                "</td><td>" +
+                escHtml(e.mode) +
+                "</td><td class=\"mono\">" +
+                escHtml(e.symbol) +
+                "</td><td>" +
+                escHtml(e.event_type) +
+                "</td><td class=\"mono\">" +
+                escHtml(pnl) +
+                "</td><td style=\"max-width:300px;white-space:pre-wrap;line-height:1.35\">" +
+                why +
+                "</td></tr>"
+              );
+            })
+            .join("");
+        } catch (err) {
+          tb.innerHTML =
+            '<tr><td colspan="6" style="color:var(--red);padding:0.75rem">' + escHtml(String(err)) + "</td></tr>";
+        }
+      }
+
+      document.getElementById("playbook-refresh-btn")?.addEventListener("click", () => loadPlaybook());
+      loadPlaybook();
+
+      async function runResearchLab(kind) {
+        const out = document.getElementById("research-lab-out");
+        if (!out) return;
+        out.style.display = "block";
+        out.textContent =
+          kind === "evolve"
+            ? "Running evolution… (many Binance calls — can take a few minutes)"
+            : "Running…";
+        const body = readBacktestPayload();
+        let url = "/api/research/walk-forward";
+        if (kind === "stress") url = "/api/research/stress";
+        if (kind === "evolve") url = "/api/research/evolve";
+        const extra =
+          kind === "evolve"
+            ? { population: 10, generations: 2, verify_top_k: 3 }
+            : kind === "walkforward"
+              ? { train_frac: 0.7 }
+              : {};
+        try {
+          const r = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...body, ...extra }),
+          });
+          const j = await r.json();
+          if (kind === "evolve" && j.success) window.__lastResearchEvolve = j;
+          out.textContent = JSON.stringify(j, null, 2);
+        } catch (err) {
+          out.textContent = String(err);
+        }
+      }
+
+      async function applyTopGenesFromLastEvolve() {
+        const out = document.getElementById("research-lab-out");
+        const j = window.__lastResearchEvolve;
+        if (!j || !j.success || !j.top || !j.top[0] || !j.top[0].genes) {
+          alert("Run “Evolve genes” successfully first, then apply rank #1.");
+          return;
+        }
+        out.style.display = "block";
+        out.textContent = "Applying…";
+        const body = readBacktestPayload();
+        try {
+          const r = await fetch("/api/config/apply-genes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              genes: j.top[0].genes,
+              symbol: body.symbol,
+              timeframe: body.timeframe,
+              initial_capital: body.initial_capital,
+            }),
+          });
+          const res = await r.json();
+          out.textContent = JSON.stringify(res, null, 2);
+        } catch (e) {
+          out.textContent = String(e);
+        }
+      }
+
+      async function resetRuntimeToSpecYaml() {
+        const out = document.getElementById("research-lab-out");
+        out.style.display = "block";
+        out.textContent = "Resetting…";
+        try {
+          const r = await fetch("/api/config/apply-genes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reset: true }),
+          });
+          const res = await r.json();
+          out.textContent = JSON.stringify(res, null, 2);
+        } catch (e) {
+          out.textContent = String(e);
+        }
+      }
+
+      async function showRuntimeConfig() {
+        const out = document.getElementById("research-lab-out");
+        out.style.display = "block";
+        out.textContent = "Loading…";
+        try {
+          const r = await fetch("/api/config/runtime");
+          const res = await r.json();
+          out.textContent = JSON.stringify(res, null, 2);
+        } catch (e) {
+          out.textContent = String(e);
+        }
+      }
+
+      document.getElementById("research-wf-btn")?.addEventListener("click", () => runResearchLab("walkforward"));
+      document.getElementById("research-stress-btn")?.addEventListener("click", () => runResearchLab("stress"));
+      document.getElementById("research-evolve-btn")?.addEventListener("click", () => runResearchLab("evolve"));
+      document.getElementById("research-apply-top-btn")?.addEventListener("click", () => applyTopGenesFromLastEvolve());
+      document.getElementById("research-reset-btn")?.addEventListener("click", () => resetRuntimeToSpecYaml());
+      document.getElementById("research-runtime-btn")?.addEventListener("click", () => showRuntimeConfig());
+
+      async function loadKzRuns() {
+        const tb = document.getElementById("kz-runs-tbody");
+        if (!tb) return;
+        try {
+          const r = await fetch("/api/research/kz-runs?limit=25");
+          const j = await r.json();
+          if (!j.success) throw new Error(j.error || "KZ runs request failed");
+          const runs = j.runs || [];
+          if (runs.length === 0) {
+            tb.innerHTML =
+              '<tr><td colspan="7" style="color:var(--muted);padding:0.75rem">No KZ research runs yet — use “Run KZ job now” or enable <code>KZ_AUTO_RESEARCH</code>.</td></tr>';
+            return;
+          }
+          tb.innerHTML = runs
+            .map((row) => {
+              const t = escHtml((row.created_at || "").slice(0, 19).replace("T", " "));
+              const trig = escHtml(String(row.trigger_tag || "—"));
+              const sym = escHtml(String(row.symbol || "—"));
+              const tf = escHtml(String(row.timeframe || "—"));
+              const ff =
+                row.fitness_fast != null && !Number.isNaN(Number(row.fitness_fast))
+                  ? Number(row.fitness_fast).toFixed(4)
+                  : "—";
+              const fc =
+                row.fitness_crisis != null && !Number.isNaN(Number(row.fitness_crisis))
+                  ? Number(row.fitness_crisis).toFixed(4)
+                  : "—";
+              let st = "ok";
+              let stCol = "var(--green)";
+              if (row.error) {
+                st = row.error.length > 48 ? row.error.slice(0, 45) + "…" : row.error;
+                stCol = "var(--red)";
+              }
+              return (
+                "<tr><td class=\"mono\">" +
+                t +
+                "</td><td style=\"max-width:140px;white-space:pre-wrap;line-height:1.3\">" +
+                trig +
+                "</td><td class=\"mono\">" +
+                sym +
+                "</td><td class=\"mono\">" +
+                tf +
+                "</td><td class=\"mono\">" +
+                ff +
+                "</td><td class=\"mono\">" +
+                fc +
+                "</td><td style=\"color:" +
+                stCol +
+                ";max-width:220px;white-space:pre-wrap;line-height:1.3\">" +
+                escHtml(st) +
+                "</td></tr>"
+              );
+            })
+            .join("");
+        } catch (err) {
+          tb.innerHTML =
+            '<tr><td colspan="7" style="color:var(--red);padding:0.75rem">' + escHtml(String(err)) + "</td></tr>";
+        }
+      }
+
+      async function runKzJobNow() {
+        const out = document.getElementById("research-lab-out");
+        const btn = document.getElementById("kz-run-now-btn");
+        if (!out || !btn) return;
+        out.style.display = "block";
+        out.textContent = "Starting KZ research job (rolling window + light evolution)…";
+        btn.disabled = true;
+        const prev = btn.textContent;
+        btn.textContent = "Running…";
+        try {
+          const r = await fetch("/api/research/kz-run-now", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tag: "manual-ui" }),
+          });
+          const j = await r.json();
+          out.textContent = JSON.stringify(j, null, 2);
+          if (j.success) await loadKzRuns();
+        } catch (e) {
+          out.textContent = String(e);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = prev;
+        }
+      }
+
+      document.getElementById("kz-runs-refresh-btn")?.addEventListener("click", () => loadKzRuns());
+      document.getElementById("kz-run-now-btn")?.addEventListener("click", () => runKzJobNow());
+      loadKzRuns();
+
+      socket.on("live_data", (data) => {
+        if (data && data.per_symbol) lastPerSymbolSocket = data;
+        updateLiveSignal(normalizeLivePayload(data));
+      });
+      socket.on("trade_executed", (data) => logTradeEvent(data));
+
+      function readBacktestPayload() {
+        return {
+          symbol: document.getElementById("inp-symbol").value.trim() || "BTCUSDT",
+          timeframe: document.getElementById("inp-tf").value,
+          start_date: document.getElementById("inp-start").value,
+          end_date: document.getElementById("inp-end").value,
+          initial_capital: parseFloat(document.getElementById("inp-capital").value) || 10000,
+        };
+      }
+
+      document.getElementById("backtest-btn").addEventListener("click", async () => {
+        const btn = document.getElementById("backtest-btn");
+        btn.disabled = true;
+        const prev = btn.textContent;
+        btn.textContent = "Running…";
+
+        const banner = document.getElementById("metrics-banner");
+        banner.classList.add("hidden");
+
+        try {
+          const response = await fetch("/api/backtest", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(readBacktestPayload()),
+          });
+          const data = await response.json();
+          if (data.success) {
+            updateMetrics(data.metrics);
+            updateCharts(data);
+            updatePriceChart(data);
+            updateTradesTable(data.trades);
+            if (data.meta) {
+              document.getElementById("price-title").textContent =
+                `${data.meta.symbol} · ${data.meta.timeframe}`;
+            }
+            const strip = document.getElementById("last-run-strip-text");
+            if (strip && data.regime) {
+              const r = data.regime;
+              const rid = data.run_id != null ? ` · saved run #${data.run_id}` : "";
+              strip.innerHTML =
+                `<strong>Regime tag:</strong> <code style="color:var(--accent)">${r.tag}</code> (vol: ${r.vol_regime}, trend: ${r.trend_regime})${rid}. ` +
+                `Compare runs with the same tag to mimic PRISM-style regime splits.`;
+            }
+            loadPlaybook();
+          } else {
+            banner.textContent = data.error || "Backtest failed";
+            banner.classList.remove("hidden");
+          }
+        } catch (error) {
+          banner.textContent = String(error);
+          banner.classList.remove("hidden");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = prev;
+        }
+      });
+
+      document.getElementById("paper-start-btn").addEventListener("click", async () => {
+        const response = await fetch("/api/paper/start", { method: "POST" });
+        const data = await response.json();
+        if (data.success) {
+          const lg = document.getElementById("live-log");
+          if (lg) lg.innerHTML = "";
+          paperLiveActive = true;
+          lastArmedAlertBarBySym = {};
+          getAudioCtx();
+          document.getElementById("paper-start-btn").classList.add("hidden");
+          document.getElementById("paper-stop-btn").classList.remove("hidden");
+          document.getElementById("live-signal").classList.remove("hidden");
+          const b = document.getElementById("status-badge");
+          b.textContent = "Paper trading";
+          b.classList.add("live");
+          updateEntryRadar(lastLivePayload);
+        } else {
+          alert(data.error || "Could not start");
+        }
+      });
+
+      document.getElementById("suggest-btn")?.addEventListener("click", async () => {
+        const btn = document.getElementById("suggest-btn");
+        const out = document.getElementById("suggest-output");
+        const src = document.getElementById("suggest-source");
+        const useLlm = document.getElementById("suggest-use-llm")?.checked || false;
+        if (!btn || !out) return;
+        btn.disabled = true;
+        const prev = btn.textContent;
+        btn.textContent = "Thinking…";
+        out.style.display = "block";
+        out.textContent = useLlm ? "Calling API…" : "Loading history…";
+        if (src) src.textContent = "";
+        try {
+          const res = await fetch("/api/research/suggest", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ use_llm: useLlm, history_limit: 15 }),
+          });
+          const j = await res.json();
+          if (j.success) {
+            out.textContent = j.markdown || "(empty)";
+            if (src) src.textContent = "Source: " + (j.source || "rules");
+          } else {
+            out.textContent = j.error || JSON.stringify(j);
+          }
+        } catch (e) {
+          out.textContent = String(e);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = prev;
+        }
+      });
+
+      document.getElementById("paper-stop-btn").addEventListener("click", async () => {
+        const response = await fetch("/api/paper/stop", { method: "POST" });
+        const data = await response.json();
+        if (data.success) {
+          paperLiveActive = false;
+          lastPerSymbolSocket = null;
+          dashboardLiveFocusSymbol = null;
+          document.getElementById("paper-start-btn").classList.remove("hidden");
+          document.getElementById("paper-stop-btn").classList.add("hidden");
+          document.getElementById("live-signal").classList.add("hidden");
+          const law = document.getElementById("live-all-wrap");
+          if (law) law.style.display = "none";
+          const b = document.getElementById("status-badge");
+          b.textContent = "Backtest";
+          b.classList.remove("live");
+          updateEntryRadar(null);
+        } else {
+          alert(data.error || "Could not stop");
+        }
+      });
+
+      function updateMetrics(metrics) {
+        const banner = document.getElementById("metrics-banner");
+        if (metrics.error) {
+          banner.textContent = metrics.error;
+          banner.classList.remove("hidden");
+          document.getElementById("metric-trades").textContent = "0";
+          document.getElementById("metric-pf").textContent = "—";
+          document.getElementById("metric-exp").textContent = "E —";
+          document.getElementById("metric-final-cap").textContent = "Final —";
+          return;
+        }
+        banner.classList.add("hidden");
+
+        document.getElementById("metric-pnl").textContent = "$" + Number(metrics.total_pnl).toFixed(2);
+        document.getElementById("metric-pnl-pct").textContent = Number(metrics.total_pnl_pct).toFixed(2) + "%";
+        document.getElementById("metric-winrate").textContent = metrics.win_rate + "%";
+        document.getElementById("metric-wins").textContent = metrics.winning_trades;
+        document.getElementById("metric-losses").textContent = metrics.losing_trades;
+        document.getElementById("metric-sharpe").textContent = metrics.sharpe_ratio;
+        document.getElementById("metric-dd").textContent = metrics.max_drawdown + "%";
+        document.getElementById("metric-trades").textContent = metrics.total_trades;
+        document.getElementById("metric-pf").textContent =
+          metrics.profit_factor >= 999 ? "∞" : Number(metrics.profit_factor).toFixed(2);
+        document.getElementById("metric-exp").textContent = "E " + Number(metrics.expectancy).toFixed(2);
+        document.getElementById("metric-final-cap").textContent =
+          "Final $" + Number(metrics.final_capital).toLocaleString(undefined, { maximumFractionDigits: 2 });
+
+        const pnlEl = document.getElementById("metric-pnl");
+        pnlEl.style.color = metrics.total_pnl >= 0 ? "var(--green)" : "var(--red)";
+      }
+
+      function updateCharts(data) {
+        const eq = data.equity_curve || [];
+        const eqTrace = {
+          x: eq.map((d) => d.timestamp),
+          y: eq.map((d) => d.value),
+          type: "scatter",
+          mode: "lines",
+          line: { color: "#34d399", width: 2 },
+          name: "Equity",
+        };
+        Plotly.newPlot("equity-chart", [eqTrace], {
+          ...plotlyDark,
+          showlegend: false,
+        });
+
+        const sig = data.signals || [];
+        const signalTrace = {
+          x: sig.map((_, i) => i),
+          y: sig.map((d) => d.signal_strength),
+          type: "bar",
+          marker: {
+            color: sig.map((d) => (d.signal > 0 ? "#34d399" : d.signal < 0 ? "#f87171" : "#6b7280")),
+          },
+        };
+        Plotly.newPlot("signal-chart", [signalTrace], { ...plotlyDark, showlegend: false });
+      }
+
+      function updatePriceChart(data) {
+        const bars = data.price_bars || [];
+        const hint = document.getElementById("price-hint");
+        if (!bars.length) {
+          hint.textContent = "No price data returned.";
+          Plotly.purge("price-chart");
+          return;
+        }
+        hint.textContent = "Sampled candles from the backtest window (Binance klines).";
+
+        const trace = {
+          x: bars.map((b) => b.t),
+          open: bars.map((b) => b.o),
+          high: bars.map((b) => b.h),
+          low: bars.map((b) => b.l),
+          close: bars.map((b) => b.c),
+          type: "candlestick",
+          increasing: { line: { color: "#34d399" }, fillcolor: "rgba(52,211,153,0.35)" },
+          decreasing: { line: { color: "#f87171" }, fillcolor: "rgba(248,113,113,0.35)" },
+          name: "OHLC",
+        };
+
+        Plotly.newPlot("price-chart", [trace], {
+          ...plotlyDark,
+          xaxis: { ...plotlyDark.xaxis, rangeslider: { visible: false } },
+          yaxis: { ...plotlyDark.yaxis, title: "Price" },
+          showlegend: false,
+        });
+      }
+
+      function updateTradesTable(trades) {
+        const tbody = document.getElementById("trades-table");
+        if (!trades || trades.length === 0) {
+          tbody.innerHTML =
+            '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem">No trades in this run</td></tr>';
+          return;
+        }
+        tbody.innerHTML = trades
+          .map(
+            (trade) => `
+            <tr>
+              <td class="mono">${trade.entry_time ? new Date(trade.entry_time).toLocaleString() : "—"}</td>
+              <td style="color: ${trade.side === "LONG" ? "var(--green)" : "var(--red)"}; font-weight:600">${trade.side}</td>
+              <td class="mono">$${Number(trade.entry_price).toFixed(2)}</td>
+              <td class="mono">$${Number(trade.exit_price).toFixed(2)}</td>
+              <td class="mono" style="color: ${trade.pnl >= 0 ? "var(--green)" : "var(--red)"}">$${Number(trade.pnl).toFixed(2)}</td>
+              <td class="mono" style="color: ${trade.pnl_pct >= 0 ? "var(--green)" : "var(--red)"}">${Number(trade.pnl_pct).toFixed(2)}%</td>
+            </tr>
+          `
+          )
+          .join("");
+      }
+
+      function updateLiveSignal(data) {
+        lastLivePayload = data;
+        updateEntryRadar(data);
+        maybeSetupAlerts(data);
+
+        const lf = document.getElementById("live-focus-label");
+        if (lf) {
+          const sym = data.symbol || data._focusSymbol || "";
+          const wl = data._watchlist;
+          if (sym)
+            lf.textContent = wl && wl.length > 1 ? sym + " · " + wl.length + " pairs" : sym;
+          else lf.textContent = "";
+        }
+
+        document.getElementById("live-price").textContent = "$" + Number(data.price).toFixed(2);
+        const signalText = document.getElementById("live-signal-text");
+        const inPos = data.position != null && Number(data.position) !== 0;
+        if (inPos) {
+          signalText.textContent = Number(data.position) === 1 ? "IN LONG" : "IN SHORT";
+          signalText.style.color = Number(data.position) === 1 ? "var(--green)" : "var(--red)";
+        } else if (data.signal === 1) {
+          signalText.textContent = "LONG";
+          signalText.style.color = "var(--green)";
+        } else if (data.signal === -1) {
+          signalText.textContent = "SHORT";
+          signalText.style.color = "var(--red)";
+        } else {
+          signalText.textContent = "NEUTRAL";
+          signalText.style.color = "var(--muted)";
+        }
+        const conf = data.confluence != null ? data.confluence : "—";
+        document.getElementById("live-signal-strength").textContent =
+          "Strength: " + Number(data.signal_strength).toFixed(0) + "% · conf. " + conf;
+
+        const lv = document.getElementById("live-levels");
+        if (inPos && data.entry_price != null) {
+          lv.style.display = "block";
+          const pct = (Number(data.position_remaining) * 100).toFixed(0);
+          document.getElementById("live-pct").textContent = pct + "%";
+          document.getElementById("live-bars").textContent = data.bars_held != null ? String(data.bars_held) : "—";
+          const u = Number(data.unrealized_pnl);
+          const uel = document.getElementById("live-unreal");
+          uel.textContent = (u >= 0 ? "+" : "") + "$" + u.toFixed(2);
+          uel.style.color = u >= 0 ? "var(--green)" : "var(--red)";
+          document.getElementById("live-entry").textContent = "$" + Number(data.entry_price).toFixed(2);
+          document.getElementById("live-sl").textContent = "$" + Number(data.stop_loss).toFixed(2);
+          document.getElementById("live-tp1").textContent = "$" + Number(data.tp1).toFixed(2);
+          document.getElementById("live-tp2").textContent = "$" + Number(data.tp2).toFixed(2);
+          document.getElementById("live-tp3").textContent = "$" + Number(data.tp3).toFixed(2);
+          document.getElementById("live-rr").textContent =
+            data.risk_r != null ? Number(data.risk_r).toFixed(2) + " R" : "—";
+        } else {
+          lv.style.display = "none";
+        }
+        renderDashboardLiveAllTable(data);
+      }
+
+      function logTradeEvent(data) {
+        console.log("Trade:", data);
+        const symP = data.symbol ? "[" + data.symbol + "] " : "";
+        if (data.type === "OPEN" && data.side && data.price != null && data.stop_loss != null) {
+          triggerEntryAlarm(
+            data.side,
+            Number(data.price).toFixed(2),
+            Number(data.stop_loss).toFixed(2),
+            data.symbol,
+            data.entry_reason_text
+          );
+        } else if (data.type && data.type !== "OPEN") {
+          const rem = data.position_remaining != null ? Number(data.position_remaining) : null;
+          const flat = rem == null || rem < 1e-6;
+          showToast(
+            symP + "Exit: " + data.type,
+            (data.exit_reason_text || "").slice(0, 140) || "P&L $" + Number(data.pnl || 0).toFixed(2) + (flat ? " · flat" : ""),
+            "exit"
+          );
+          if (flat) playExitChime();
+        }
+        loadPlaybook();
+        const log = document.getElementById("live-log");
+        if (!log) return;
+        const t = new Date().toLocaleTimeString();
+        let line = t + " " + symP;
+        if (data.type === "OPEN") {
+          line += "Open " + data.side + " @ $" + Number(data.price).toFixed(2);
+          line += " | SL $" + Number(data.stop_loss).toFixed(2);
+          line += " | TP1–3 set (1R/2R/3R)";
+        } else {
+          line += (data.type || "event") + " PnL $" + Number(data.pnl || 0).toFixed(2);
+          if (data.position_remaining != null) line += " | left " + (Number(data.position_remaining) * 100).toFixed(0) + "%";
+        }
+        const div = document.createElement("div");
+        div.textContent = line;
+        log.prepend(div);
+        while (log.children.length > 12) log.removeChild(log.lastChild);
+      }
+    </script>
+  </body>
+</html>
