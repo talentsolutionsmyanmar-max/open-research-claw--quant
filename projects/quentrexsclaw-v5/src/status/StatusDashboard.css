@@ -463,6 +463,17 @@
     margin-right: 16px;
   }
 
+  /* Header/hero badges and the disclaimer wrap fully within the narrow viewport. */
+  .qsdb-demo-badge,
+  .qsdb-clock-pill,
+  .qsdb-clock-pill-small,
+  .qsdb-not-live-note,
+  .qsdb-display-action,
+  .qsdb-downgrade-banner {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
   /* ── Responsive: table becomes stacked cards (no horizontal scroll).
         Final State, Runnable, and Final Blocker remain fully visible. ── */
   .qsdb-table-wrap {
@@ -505,22 +516,23 @@
   }
   .qsdb-table tbody th[scope='row'],
   .qsdb-table tbody td {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 14px;
+    display: block;
+    width: 100%;
+    min-width: 0;
     border-bottom: 1px solid var(--border);
     padding: 8px 0;
-    text-align: right;
+    text-align: left;
   }
+  /* Label rendered ABOVE the value (block), so each value gets the full card
+     width and multi-child cells no longer crowd into one flex row. */
   .qsdb-table tbody td::before {
     content: attr(data-label);
+    display: block;
     color: var(--muted-2);
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.7px;
-    text-align: left;
-    flex: 0 0 38%;
+    margin-bottom: 3px;
   }
   .qsdb-table tbody th[scope='row'] {
     border-bottom: 1px solid var(--border-strong);
@@ -530,10 +542,24 @@
   .qsdb-table tbody tr:last-child td {
     border-bottom: none;
   }
-  /* Long blocker copy wraps cleanly under its label. */
+  /* Long values wrap within the full-width cell — nothing is cropped. The
+     final-state badge + DOWNGRADED marker wrap naturally to a second line. */
+  .qsdb-venue,
+  .qsdb-contract,
+  .qsdb-blocker,
+  .qsdb-cell-value,
+  .qsdb-detail-title,
+  .qsdb-detail-grid dd {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
   .qsdb-blocker {
-    max-width: 60%;
-    text-align: right;
+    display: block;
+    text-align: left;
+  }
+  .qsdb-gen {
+    white-space: normal;
   }
 
   .qsdb-detail-grid {
