@@ -1,0 +1,465 @@
+/* Quantrex Status Dashboard v0.1 — read-only visibility surface. */
+
+.qsdb {
+  --bg: #0b0e14;
+  --bg-elev: #11151f;
+  --bg-elev-2: #0f1320;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --text: #e6e9ef;
+  --muted: #8a93a6;
+  --muted-2: #5c6478;
+  --accent-go: #2ecc71;
+  --accent-monitor: #f5a623;
+  --accent-manage: #3b82f6;
+  --accent-danger: #ff5c7c;
+  --radius: 10px;
+
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 0 0 48px;
+}
+
+.qsdb * {
+  box-sizing: border-box;
+}
+
+/* ── Top status strip ── */
+.qsdb-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 18px 24px;
+  background: linear-gradient(180deg, var(--bg-elev) 0%, var(--bg) 100%);
+  border-bottom: 1px solid var(--border);
+}
+
+.qsdb-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.qsdb-strategy {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+  color: var(--text);
+}
+
+.qsdb-demo-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(245, 166, 35, 0.14);
+  border: 1px solid rgba(245, 166, 35, 0.45);
+  color: #f7c065;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.qsdb-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.qsdb-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.qsdb-meta-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted-2);
+}
+
+.qsdb-meta-value {
+  font-size: 13px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.qsdb-freshness {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+}
+.qsdb-freshness.is-fresh {
+  background: rgba(46, 204, 113, 0.12);
+  border: 1px solid rgba(46, 204, 113, 0.45);
+  color: var(--accent-go);
+}
+.qsdb-freshness.is-stale {
+  background: rgba(255, 92, 124, 0.12);
+  border: 1px solid rgba(255, 92, 124, 0.45);
+  color: var(--accent-danger);
+}
+
+.qsdb-not-live-note {
+  margin: 0;
+  padding: 10px 24px;
+  color: var(--muted);
+  font-size: 12px;
+  background: var(--bg-elev-2);
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Final decision hero ── */
+.qsdb-hero {
+  margin: 20px 24px 0;
+  padding: 22px 24px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.qsdb-hero-headline {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.qsdb-hero-eyebrow {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+
+.qsdb-hero-grid {
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.qsdb-hero-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.qsdb-cell-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted-2);
+}
+
+.qsdb-cell-value {
+  font-size: 14px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.qsdb-display-action {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* ── State badges (color is never the only carrier — always paired with text) ── */
+.qsdb-state-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.qsdb-state-ENTRY_GO {
+  background: rgba(46, 204, 113, 0.14);
+  border-color: rgba(46, 204, 113, 0.5);
+  color: var(--accent-go);
+}
+.qsdb-state-MONITOR_ONLY {
+  background: rgba(245, 166, 35, 0.14);
+  border-color: rgba(245, 166, 35, 0.5);
+  color: var(--accent-monitor);
+}
+.qsdb-state-POSITION_MANAGE_ONLY {
+  background: rgba(59, 130, 246, 0.14);
+  border-color: rgba(59, 130, 246, 0.5);
+  color: var(--accent-manage);
+}
+/* Final state is visually more prominent than scanner state. */
+.qsdb-final {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.qsdb-scanner {
+  color: var(--muted-2);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+}
+
+.qsdb-runnable {
+  font-size: 13px;
+  font-weight: 600;
+}
+.qsdb-runnable.is-yes {
+  color: var(--accent-go);
+}
+.qsdb-runnable.is-no {
+  color: var(--accent-danger);
+}
+
+.qsdb-downgrade-banner {
+  margin: 4px 0 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(255, 92, 124, 0.08);
+  border: 1px solid rgba(255, 92, 124, 0.35);
+  color: #f6aebb;
+  font-size: 13px;
+}
+
+.qsdb-downgrade-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(255, 92, 124, 0.16);
+  border: 1px solid rgba(255, 92, 124, 0.45);
+  color: var(--accent-danger);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  vertical-align: middle;
+}
+
+/* ── Candidate table ── */
+.qsdb-table-wrap {
+  margin: 20px 24px 0;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-x: auto;
+}
+
+.qsdb-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 880px;
+}
+
+.qsdb-table thead th {
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.9px;
+  color: var(--muted-2);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elev-2);
+}
+
+.qsdb-table tbody th,
+.qsdb-table tbody td {
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  font-weight: 400;
+}
+
+.qsdb-table tbody tr:last-child th,
+.qsdb-table tbody td {
+  border-bottom: none;
+}
+
+.qsdb-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.qsdb-row-downgraded th,
+.qsdb-row-downgraded td {
+  border-left: 2px solid transparent;
+}
+.qsdb-row-downgraded {
+  box-shadow: inset 3px 0 0 var(--accent-danger);
+}
+
+.qsdb-venue {
+  font-size: 12px;
+  color: var(--text);
+}
+.qsdb-contract {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.qsdb-blocker {
+  font-size: 12px;
+  color: var(--muted);
+  max-width: 280px;
+  display: inline-block;
+}
+
+.qsdb-gen {
+  font-size: 12px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.qsdb-age {
+  font-size: 11px;
+  color: var(--muted-2);
+}
+
+.qsdb-instrument-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.qsdb-chevron {
+  color: var(--muted-2);
+  font-size: 16px;
+}
+
+/* ── Detail panel ── */
+.qsdb-detail {
+  margin: 20px 24px 0;
+  padding: 20px 24px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  min-height: 80px;
+}
+
+.qsdb-detail-prompt {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.qsdb-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.qsdb-detail-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.qsdb-detail-rule {
+  margin: 0 0 16px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: #9cc0ff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.qsdb-detail-grid {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 10px 20px;
+  margin: 0;
+}
+
+.qsdb-detail-grid dt {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--muted-2);
+  align-self: center;
+}
+
+.qsdb-detail-grid dd {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text);
+}
+
+/* ── Footer ── */
+.qsdb-footer {
+  margin: 24px 24px 0;
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+  color: var(--muted-2);
+  font-size: 12px;
+  text-align: center;
+}
+
+/* ── Accessibility: visible focus states ── */
+.qsdb-instrument-trigger:focus-visible,
+.qsdb-table-wrap:focus-visible,
+.qsdb-detail:focus-visible {
+  outline: 2px solid var(--accent-manage);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 720px) {
+  .qsdb-topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+  }
+  .qsdb-topbar-right {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .qsdb-hero,
+  .qsdb-table-wrap,
+  .qsdb-detail,
+  .qsdb-footer {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+  .qsdb-detail-grid {
+    grid-template-columns: 1fr;
+    gap: 4px 0;
+  }
+  .qsdb-detail-grid dt {
+    margin-top: 6px;
+  }
+}
