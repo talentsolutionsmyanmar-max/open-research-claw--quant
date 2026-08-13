@@ -1,15 +1,43 @@
 /**
- * Quantrex Status Dashboard v0.1 — forbidden-field guard tests.
+ * Quantrex Status Dashboard v0.1 — fixture-field hygiene tests.
+ *
+ * The guard is fixture-field HYGIENE, not a formal execution-security barrier
+ * (residual risk: it only covers the demo fixture and rendered copy; it does
+ * not protect against adversarial input and does not replace review). These
+ * tests verify the hygiene behaviour:
+ *   - a narrow allowlist rejects unknown / execution-oriented fields (incl. aliases);
+ *   - a rendered-copy validator rejects plan/imperative vocabulary;
+ *   - a data invariant keeps MONITOR_ONLY non-runnable.
+ *
+ * It deliberately does NOT use broad substring matching on values, so harmless
+ * terms that merely contain a short execution-like substring are not rejected.
  */
 import {
-  findForbiddenKeys,
-  assertNoExecutionFields,
-  FORBIDDEN_FIELD_NAMES,
+  ALLOWED_RECORD_KEYS,
+  ALLOWED_SNAPSHOT_KEYS,
+  findUnknownKeys,
+  findUnsafeRenderCopy,
+  findInvariantViolations,
+  assertFixtureHygiene,
+  assertRenderCopySafe,
 } from './guard';
+import { FIXTURE } from './fixture';
 
-describe('forbidden-field guard', () => {
-  it('flags every execution-oriented field name variant', () => {
+describe('fixture-field hygiene (allowlist + rendered-copy)', () => {
+  it('rejects execution-oriented field aliases via the allowlist', () => {
     const poisoned = {
+      id: 'x',
+      instrument: 'X',
+      venue: 'V',
+      contract: 'C',
+      scannerState: 'GO',
+      finalOperationalState: 'MONITOR_ONLY',
+      runnableNow: false,
+      generatedAt: 't',
+      finalBlocker: null,
+      displayAction: 'a',
+      sourceLabel: 's',
+      // execution-oriented aliases — none are permitted keys:
       entryPrice: 1,
       stopLoss: 2,
       sl: 3,
@@ -19,13 +47,12 @@ describe('forbidden-field guard', () => {
       size: 7,
       quantity: 8,
       leverage: 9,
-      order: 10,
-      side: 11,
-      reduce_only: 12,
-      client_order_id: 13,
+      orderSide: 10,
+      reduceOnly: 11,
+      clientOrderId: 12,
     };
-    const found = findForbiddenKeys(poisoned);
-    expect(found).toEqual(
+    const unknown = findUnknownKeys(poisoned, ALLOWED_RECORD_KEYS);
+    expect(unknown).toEqual(
       expect.arrayContaining([
         'entryPrice',
         'stopLoss',
@@ -36,45 +63,105 @@ describe('forbidden-field guard', () => {
         'size',
         'quantity',
         'leverage',
-        'order',
-        'side',
-        'reduce_only',
-        'client_order_id',
+        'orderSide',
+        'reduceOnly',
+        'clientOrderId',
       ])
     );
   });
 
-  it('does not flag the clean dashboard schema', () => {
-    const clean = {
+  it('rejects an unknown but harmless key via the allowlist', () => {
+    const withUnknown = {
       id: 'x',
-      instrument: 'XAUUSDT',
-      venue: 'BINANCE_FUTURES',
-      contract: 'XAUUSDT TRADIFI_PERPETUAL',
+      instrument: 'X',
+      venue: 'V',
+      contract: 'C',
       scannerState: 'GO',
       finalOperationalState: 'MONITOR_ONLY',
       runnableNow: false,
-      generatedAt: '2026-08-13T08:15:36Z',
+      generatedAt: 't',
       finalBlocker: null,
-      displayAction: 'No bot-approved entry.',
-      sourceLabel: 'Quantrex Strategy-B engine (DEMO fixture)',
+      displayAction: 'a',
+      sourceLabel: 's',
+      surpriseExtra: 1,
     };
-    expect(findForbiddenKeys(clean)).toEqual([]);
+    expect(findUnknownKeys(withUnknown, ALLOWED_RECORD_KEYS)).toContain('surpriseExtra');
   });
 
-  it('walks nested objects and arrays', () => {
-    const nested = { records: [{ ok: 1 }, { leverage: 5 }] };
-    expect(findForbiddenKeys(nested)).toContain('records[1].leverage');
+  it('accepts the clean record schema', () => {
+    const clean = {
+      id: 'x',
+      instrument: 'X',
+      venue: 'V',
+      contract: 'C',
+      scannerState: 'GO',
+      finalOperationalState: 'MONITOR_ONLY',
+      runnableNow: false,
+      generatedAt: 't',
+      finalBlocker: null,
+      displayAction: 'a',
+      sourceLabel: 's',
+    };
+    expect(findUnknownKeys(clean, ALLOWED_RECORD_KEYS)).toEqual([]);
   });
 
-  it('throws from assertNoExecutionFields on forbidden names', () => {
-    expect(() => assertNoExecutionFields('test', { leverage: 5 })).toThrow();
+  it('accepts the clean snapshot schema', () => {
+    expect(findUnknownKeys(FIXTURE, ALLOWED_SNAPSHOT_KEYS)).toEqual([]);
   });
 
-  it('does not throw from assertNoExecutionFields on clean data', () => {
-    expect(() => assertNoExecutionFields('test', { instrument: 'X' })).not.toThrow();
+  it('inspects keys only — values containing execution-like substrings are not flagged', () => {
+    // Allowlist matching is on whole keys, never on value substrings, so values
+    // like "sidechain" or "orderbook" do not trigger false rejections.
+    const harmlessValues = {
+      id: 'x',
+      instrument: 'sidechain-XYZ',
+      venue: 'orderbook-view',
+      contract: 'C',
+      scannerState: 'GO',
+      finalOperationalState: 'MONITOR_ONLY',
+      runnableNow: false,
+      generatedAt: 't',
+      finalBlocker: 'consolidation, no change',
+      displayAction: 'monitoring',
+      sourceLabel: 's',
+    };
+    expect(findUnknownKeys(harmlessValues, ALLOWED_RECORD_KEYS)).toEqual([]);
   });
 
-  it('exposes the full forbidden token list', () => {
-    expect(FORBIDDEN_FIELD_NAMES.length).toBe(14);
+  it('flags unsafe rendered copy', () => {
+    const unsafe =
+      'Entry price 100, stop loss 90, take profit 120, leverage 10x, go long now, BUY immediately';
+    expect(findUnsafeRenderCopy(unsafe).length).toBeGreaterThan(0);
+  });
+
+  it('passes safe copy including disclaimer negations', () => {
+    const safe =
+      'It does not execute trades and is not a trade instruction. Monitoring only. ENTRY_GO final state shown for visibility; this surface performs no execution.';
+    expect(findUnsafeRenderCopy(safe)).toEqual([]);
+  });
+
+  it('enforces the MONITOR_ONLY => runnableNow false invariant', () => {
+    expect(
+      findInvariantViolations([
+        { id: 'a', finalOperationalState: 'MONITOR_ONLY', runnableNow: false },
+      ])
+    ).toEqual([]);
+    expect(
+      findInvariantViolations([
+        { id: 'a', finalOperationalState: 'MONITOR_ONLY', runnableNow: true },
+      ])
+    ).toContain('a');
+  });
+
+  it('the shipped fixture passes full hygiene (allowlist, states, invariant, copy)', () => {
+    expect(() => assertFixtureHygiene(FIXTURE)).not.toThrow();
+  });
+
+  it('throws on unsafe render copy', () => {
+    expect(() => assertRenderCopySafe('test', 'leverage 10x, BUY')).toThrow();
+  });
+
+  it('does not throw on safe render copy', () => {
+    expect(() => assertRenderCopySafe('test', 'Monitoring only.')).not.toThrow();
   });
 });

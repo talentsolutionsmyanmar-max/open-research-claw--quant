@@ -29,6 +29,10 @@ export type ScannerState =
 /**
  * A single read-only status observation for one instrument/venue.
  * Descriptive only — never imperative, never a trade instruction.
+ *
+ * Data invariant (enforced by guard.ts): when `finalOperationalState` is
+ * `MONITOR_ONLY`, `runnableNow` MUST be `false`. A POSITION_MANAGE_ONLY record
+ * observes an existing position only; it never describes a new/re-entry.
  */
 export interface StatusRecord {
   /** Stable record identifier. */
@@ -56,17 +60,16 @@ export interface StatusRecord {
 }
 
 /**
- * A demo snapshot. v0.1 ships DEMO / FIXTURE ONLY — never live data.
+ * A demo snapshot. v0.1 ships DEMO / FIXTURE ONLY — never live data, never a
+ * live clock. Timestamps are static fixture values shown for provenance only.
  */
 export interface DemoSnapshot {
   /** Visible non-live disclaimer. */
   label: string;
   /** Strategy name shown in the header. */
   strategyName: string;
-  /** When the snapshot was generated, ISO-8601 UTC (top-strip freshness). */
+  /** Static source-generated timestamp (ISO-8601 UTC). Provenance only — not a live clock. */
   sourceGeneratedAt: string;
-  /** Age beyond which the snapshot is considered stale, in milliseconds. */
-  staleThresholdMs: number;
   /** Candidate status records. */
   records: StatusRecord[];
   /** id of the record shown in the final-decision hero. */

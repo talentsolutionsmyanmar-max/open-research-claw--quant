@@ -1,41 +1,71 @@
 /**
  * Quantrex Status Dashboard v0.1 — DEMO / FIXTURE ONLY.
  *
- * This is NOT live data. There is no remote fetch in this slice. The fixture
- * is a small static, typed snapshot used to render a read-only visibility
- * surface. It is visibly labeled DEMO SNAPSHOT — NOT LIVE — NOT TRADE
- * INSTRUCTION in the UI.
+ * NOT live data. NOT a live clock. There is no remote fetch in this slice.
+ * Timestamps are static fixture values shown for provenance only.
  *
- * The runtime guard below fails loudly if this fixture ever gains an
- * execution-oriented field name.
+ * Visibly labeled DEMO SNAPSHOT — NOT LIVE — NOT TRADE INSTRUCTION.
+ *
+ * The runtime hygiene check (`assertFixtureHygiene`) fails loudly if this
+ * fixture ever gains an unknown field, an invalid state, a
+ * MONITOR_ONLY-runnable violation, or plan/imperative copy.
  */
-import { assertNoExecutionFields } from './guard';
+import { assertFixtureHygiene } from './guard';
 import type { DemoSnapshot } from './types';
 
 export const FIXTURE: DemoSnapshot = {
   label: 'DEMO SNAPSHOT — NOT LIVE — NOT TRADE INSTRUCTION',
   strategyName: 'Quantrex Strategy-B',
   sourceGeneratedAt: '2026-08-13T08:15:36Z',
-  staleThresholdMs: 15 * 60 * 1000, // 15 minutes
   primaryId: 'xauusdt-binance-tradifi',
   records: [
     {
+      // Scanner GO downgraded by the final hard gate -> no executable content.
       id: 'xauusdt-binance-tradifi',
       instrument: 'XAUUSDT',
       venue: 'BINANCE_FUTURES',
       contract: 'XAUUSDT TRADIFI_PERPETUAL',
-      // Preliminary scanner said GO ...
       scannerState: 'GO',
-      // ... but the final hard gate downgraded it to MONITOR_ONLY.
       finalOperationalState: 'MONITOR_ONLY',
       runnableNow: false,
       generatedAt: '2026-08-13T08:15:36Z',
       finalBlocker:
         'Hyperliquid confirmation unavailable; final hard gate does not permit GO.',
-      displayAction: 'No bot-approved entry.',
+      displayAction: 'Monitoring only.',
       sourceLabel: 'Quantrex Strategy-B engine (DEMO fixture)',
     },
     {
+      // ENTRY_GO coverage: visibility only. No plan details, no execution.
+      id: 'btcusdt-binance-perp',
+      instrument: 'BTCUSDT',
+      venue: 'BINANCE_FUTURES',
+      contract: 'BTCUSDT PERPETUAL',
+      scannerState: 'GO',
+      finalOperationalState: 'ENTRY_GO',
+      runnableNow: true,
+      generatedAt: '2026-08-13T08:15:36Z',
+      finalBlocker: null,
+      displayAction:
+        'ENTRY_GO final state shown for visibility. No plan details are displayed; this surface performs no execution.',
+      sourceLabel: 'Quantrex Strategy-B engine (DEMO fixture)',
+    },
+    {
+      // POSITION_MANAGE_ONLY coverage: observes an existing position only.
+      // Never describes a new entry, re-entry, add, averaging, or reversal.
+      id: 'ethusdc-mix-manage',
+      instrument: 'ETHUSDC',
+      venue: 'MIX',
+      contract: 'ETHUSDC PERPETUAL',
+      scannerState: 'NO_GO',
+      finalOperationalState: 'POSITION_MANAGE_ONLY',
+      runnableNow: false,
+      generatedAt: '2026-08-13T08:14:02Z',
+      finalBlocker: 'Existing position; management observation only.',
+      displayAction: 'Existing position under management.',
+      sourceLabel: 'Quantrex Strategy-B engine (DEMO fixture)',
+    },
+    {
+      // SOLUSDC: MONITOR_ONLY; primary venue MIX (prior-plan wording removed).
       id: 'solusdc-mix',
       instrument: 'SOLUSDC',
       venue: 'MIX',
@@ -43,26 +73,13 @@ export const FIXTURE: DemoSnapshot = {
       scannerState: 'MONITOR_ONLY',
       finalOperationalState: 'MONITOR_ONLY',
       runnableNow: false,
-      generatedAt: '2026-08-13T08:14:02Z',
-      finalBlocker: 'Prior plan expired; primary venue MIX.',
-      displayAction: 'Monitoring only — no active plan.',
-      sourceLabel: 'Quantrex Strategy-B engine (DEMO fixture)',
-    },
-    {
-      id: 'avaxusdt-binance-caution',
-      instrument: 'AVAXUSDT',
-      venue: 'BINANCE_FUTURES',
-      contract: 'AVAXUSDT PERPETUAL',
-      scannerState: 'CAUTION',
-      finalOperationalState: 'MONITOR_ONLY',
-      runnableNow: false,
       generatedAt: '2026-08-13T08:16:55Z',
-      finalBlocker: 'Liquidity confirmation weak.',
-      displayAction: 'Monitoring only — confirmation insufficient.',
+      finalBlocker: 'Primary venue MIX; not eligible.',
+      displayAction: 'Monitoring only.',
       sourceLabel: 'Quantrex Strategy-B engine (DEMO fixture)',
     },
   ],
 };
 
-// Runtime self-check: the demo fixture must never contain execution fields.
-assertNoExecutionFields('FIXTURE', FIXTURE);
+// Runtime self-check: the demo fixture must satisfy every hygiene rule.
+assertFixtureHygiene(FIXTURE);

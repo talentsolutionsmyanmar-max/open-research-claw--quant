@@ -95,24 +95,23 @@
   font-variant-numeric: tabular-nums;
 }
 
-.qsdb-freshness {
-  display: inline-flex;
-  align-items: center;
+/* Static non-live label (replaces any FRESH/STALE clock indicator). */
+.qsdb-clock-pill,
+.qsdb-clock-pill-small {
+  display: inline-block;
   padding: 5px 12px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.6px;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.45);
+  color: #9cc0ff;
+  white-space: nowrap;
 }
-.qsdb-freshness.is-fresh {
-  background: rgba(46, 204, 113, 0.12);
-  border: 1px solid rgba(46, 204, 113, 0.45);
-  color: var(--accent-go);
-}
-.qsdb-freshness.is-stale {
-  background: rgba(255, 92, 124, 0.12);
-  border: 1px solid rgba(255, 92, 124, 0.45);
-  color: var(--accent-danger);
+.qsdb-clock-pill-small {
+  padding: 3px 9px;
+  font-size: 10px;
 }
 
 .qsdb-not-live-note {
@@ -291,8 +290,9 @@
   font-weight: 400;
 }
 
+/* Fixed last-row selector: only the final row loses its bottom border. */
 .qsdb-table tbody tr:last-child th,
-.qsdb-table tbody td {
+.qsdb-table tbody tr:last-child td {
   border-bottom: none;
 }
 
@@ -300,12 +300,18 @@
   background: rgba(255, 255, 255, 0.02);
 }
 
-.qsdb-row-downgraded th,
-.qsdb-row-downgraded td {
-  border-left: 2px solid transparent;
-}
 .qsdb-row-downgraded {
   box-shadow: inset 3px 0 0 var(--accent-danger);
+}
+
+/* Selected-row state — perceivable without color alone (left rail + bold title). */
+.qsdb-row.is-selected {
+  background: rgba(59, 130, 246, 0.10);
+  box-shadow: inset 3px 0 0 var(--accent-manage);
+}
+.qsdb-row.is-selected .qsdb-instrument-trigger {
+  color: var(--accent-manage);
+  font-weight: 800;
 }
 
 .qsdb-venue {
@@ -328,10 +334,7 @@
   font-size: 12px;
   color: var(--text);
   font-variant-numeric: tabular-nums;
-}
-.qsdb-age {
-  font-size: 11px;
-  color: var(--muted-2);
+  white-space: nowrap;
 }
 
 .qsdb-instrument-trigger {
@@ -346,6 +349,10 @@
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
+}
+
+.qsdb-instrument-trigger[aria-expanded='true'] {
+  color: var(--accent-manage);
 }
 
 .qsdb-chevron {
@@ -436,7 +443,7 @@
   border-radius: 4px;
 }
 
-/* ── Responsive ── */
+/* ── Responsive: top strip ── */
 @media (max-width: 720px) {
   .qsdb-topbar {
     flex-direction: column;
@@ -455,6 +462,80 @@
     margin-left: 16px;
     margin-right: 16px;
   }
+
+  /* ── Responsive: table becomes stacked cards (no horizontal scroll).
+        Final State, Runnable, and Final Blocker remain fully visible. ── */
+  .qsdb-table-wrap {
+    overflow-x: visible;
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+  .qsdb-table,
+  .qsdb-table thead,
+  .qsdb-table tbody,
+  .qsdb-table tr,
+  .qsdb-table th,
+  .qsdb-table td {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+  .qsdb-table {
+    background: transparent;
+  }
+  /* Hide the column headers; each cell labels itself via data-label. */
+  .qsdb-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .qsdb-table tbody tr {
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .qsdb-table tbody th[scope='row'],
+  .qsdb-table tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 1px solid var(--border);
+    padding: 8px 0;
+    text-align: right;
+  }
+  .qsdb-table tbody td::before {
+    content: attr(data-label);
+    color: var(--muted-2);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    text-align: left;
+    flex: 0 0 38%;
+  }
+  .qsdb-table tbody th[scope='row'] {
+    border-bottom: 1px solid var(--border-strong);
+    padding-bottom: 10px;
+  }
+  .qsdb-table tbody tr:last-child th,
+  .qsdb-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+  /* Long blocker copy wraps cleanly under its label. */
+  .qsdb-blocker {
+    max-width: 60%;
+    text-align: right;
+  }
+
   .qsdb-detail-grid {
     grid-template-columns: 1fr;
     gap: 4px 0;

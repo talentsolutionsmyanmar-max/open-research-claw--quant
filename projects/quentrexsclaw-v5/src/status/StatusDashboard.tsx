@@ -3,22 +3,20 @@
  *
  * NOT a trading terminal. NOT a signal generator. NOT an execution surface.
  *
- * One rule dominates the UI: FINAL HARD GATE WINS. The final operational
- * state is always shown as more authoritative than the preliminary scanner
- * state; a scanner GO that the final hard gate downgrades is marked
- * DOWNGRADED and never yields a plan.
+ * One rule dominates the UI: FINAL HARD GATE WINS. The final operational state
+ * is always shown as more authoritative than the preliminary scanner state; a
+ * scanner GO that the final hard gate downgrades is marked DOWNGRADED and
+ * never yields executable content.
  *
- * v0.1 renders DEMO / FIXTURE ONLY. There is no live fetch in this slice.
+ * v0.1 renders DEMO / FIXTURE ONLY. There is no live fetch and no live clock;
+ * timestamps are static fixture values shown for provenance only.
  */
 import { useMemo, useState } from 'react';
 import { FIXTURE } from './fixture';
 import type { OperationalState, StatusRecord } from './types';
 import './StatusDashboard.css';
 
-interface StatusDashboardProps {
-  /** Reference "now" in epoch ms. Defaults to Date.now(). Injectable for tests. */
-  now?: number;
-}
+const DETAIL_PANEL_ID = 'qsdb-candidate-detail';
 
 const FINAL_STATE_LABEL: Record<OperationalState, string> = {
   ENTRY_GO: 'ENTRY_GO',
@@ -31,26 +29,13 @@ function isDowngraded(record: StatusRecord): boolean {
   return record.scannerState === 'GO' && record.finalOperationalState !== 'ENTRY_GO';
 }
 
-function formatDuration(ms: number): string {
-  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
-  if (totalSeconds < 60) return `${totalSeconds}s`;
-  const minutes = Math.floor(totalSeconds / 60);
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-  if (hours < 24) return `${hours}h ${remainingMinutes}m`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ${hours % 24}h`;
-}
-
 function formatUtc(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return `${d.toISOString().slice(0, 19).replace('T', ' ')} UTC`;
 }
 
-export default function StatusDashboard({ now }: StatusDashboardProps) {
-  const nowMs = now ?? Date.now();
+export default function StatusDashboard() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const primary = useMemo(
@@ -62,8 +47,6 @@ export default function StatusDashboard({ now }: StatusDashboardProps) {
     [selectedId]
   );
 
-  const snapshotAgeMs = nowMs - new Date(FIXTURE.sourceGeneratedAt).getTime();
-  const snapshotStale = snapshotAgeMs > FIXTURE.staleThresholdMs;
   const primaryDowngraded = isDowngraded(primary);
 
   return (
@@ -81,15 +64,8 @@ export default function StatusDashboard({ now }: StatusDashboardProps) {
             <span className="qsdb-meta-label">Source generated</span>
             <span className="qsdb-meta-value">{formatUtc(FIXTURE.sourceGeneratedAt)}</span>
           </div>
-          <div className="qsdb-meta">
-            <span className="qsdb-meta-label">Age</span>
-            <span className="qsdb-meta-value">{formatDuration(snapshotAgeMs)} old</span>
-          </div>
-          <span
-            className={`qsdb-freshness ${snapshotStale ? 'is-stale' : 'is-fresh'}`}
-            aria-label={`Source ${snapshotStale ? 'stale' : 'fresh'}`}
-          >
-            {snapshotStale ? 'STALE' : 'FRESH'}
+          <span className="qsdb-clock-pill" aria-label="Demo snapshot, not a live clock">
+            DEMO SNAPSHOT — NOT A LIVE CLOCK
           </span>
         </div>
       </header>
@@ -154,56 +130,67 @@ export default function StatusDashboard({ now }: StatusDashboardProps) {
               <th scope="col">Final State</th>
               <th scope="col">Runnable</th>
               <th scope="col">Final Blocker</th>
-              <th scope="col">Generated / Age</th>
+              <th scope="col">Generated</th>
             </tr>
           </thead>
           <tbody>
             {FIXTURE.records.map((record) => {
-              const ageMs = nowMs - new Date(record.generatedAt).getTime();
               const downgraded = isDowngraded(record);
+              const isSelected = selectedId === record.id;
+              const classNames = [
+                'qsdb-row',
+                downgraded ? 'qsdb-row-downgraded' : '',
+                isSelected ? 'is-selected' : '',
+              ]
+                .filter(Boolean)
+                .join(' ');
               return (
-                <tr key={record.id} className={downgraded ? 'qsdb-row-downgraded' : ''}>
-                  <th scope="row">
+                <tr key={record.id} className={classNames}>
+                  <th scope="row" data-label="Instrument">
                     <button
                       type="button"
                       className="qsdb-instrument-trigger"
                       aria-label={`Details for ${record.instrument}`}
+                      aria-expanded={isSelected}
+                      aria-controls={DETAIL_PANEL_ID}
                       onClick={() => setSelectedId(record.id)}
                     >
                       <span>{record.instrument}</span>
                       <span aria-hidden="true" className="qsdb-chevron">›</span>
                     </button>
                   </th>
-                  <td>
+                  <td data-label="Venue / Contract">
                     <div className="qsdb-venue">{record.venue}</div>
                     <div className="qsdb-contract">{record.contract}</div>
                   </td>
-                  <td>
+                  <td data-label="Scanner State">
                     <span className="qsdb-scanner">{record.scannerState}</span>
                   </td>
-                  <td>
+                  <td data-label="Final State">
                     <span
                       className={`qsdb-state-badge qsdb-state-${record.finalOperationalState} qsdb-final`}
                     >
                       {FINAL_STATE_LABEL[record.finalOperationalState]}
                     </span>
                     {downgraded && (
-                      <span className="qsdb-downgrade-tag" aria-label="Downgraded by final hard gate">
+                      <span
+                        className="qsdb-downgrade-tag"
+                        aria-label="Downgraded by final hard gate"
+                      >
                         DOWNGRADED
                       </span>
                     )}
                   </td>
-                  <td>
+                  <td data-label="Runnable">
                     <span className={`qsdb-runnable ${record.runnableNow ? 'is-yes' : 'is-no'}`}>
                       {record.runnableNow ? 'Yes' : 'No'}
                     </span>
                   </td>
-                  <td>
+                  <td data-label="Final Blocker">
                     <span className="qsdb-blocker">{record.finalBlocker ?? '—'}</span>
                   </td>
-                  <td>
-                    <div className="qsdb-gen">{formatUtc(record.generatedAt)}</div>
-                    <div className="qsdb-age">{formatDuration(ageMs)} old</div>
+                  <td data-label="Generated">
+                    <span className="qsdb-gen">{formatUtc(record.generatedAt)}</span>
                   </td>
                 </tr>
               );
@@ -213,9 +200,14 @@ export default function StatusDashboard({ now }: StatusDashboardProps) {
       </section>
 
       {/* ── 4. DETAIL PANEL (read-only provenance) ── */}
-      <section className="qsdb-detail" aria-label="Candidate detail">
+      <section
+        id={DETAIL_PANEL_ID}
+        className="qsdb-detail"
+        aria-label="Candidate detail"
+        aria-live="polite"
+      >
         {selected ? (
-          <DetailPanel record={selected} nowMs={nowMs} staleThresholdMs={FIXTURE.staleThresholdMs} />
+          <DetailPanel record={selected} />
         ) : (
           <p className="qsdb-detail-prompt">
             Select a candidate instrument to view its read-only provenance. Final hard gate wins.
@@ -234,13 +226,9 @@ export default function StatusDashboard({ now }: StatusDashboardProps) {
 
 interface DetailPanelProps {
   record: StatusRecord;
-  nowMs: number;
-  staleThresholdMs: number;
 }
 
-function DetailPanel({ record, nowMs, staleThresholdMs }: DetailPanelProps) {
-  const ageMs = nowMs - new Date(record.generatedAt).getTime();
-  const stale = ageMs > staleThresholdMs;
+function DetailPanel({ record }: DetailPanelProps) {
   const downgraded = isDowngraded(record);
 
   return (
@@ -249,12 +237,7 @@ function DetailPanel({ record, nowMs, staleThresholdMs }: DetailPanelProps) {
         <h2 className="qsdb-detail-title">
           {record.instrument} · {record.contract}
         </h2>
-        <span
-          className={`qsdb-freshness ${stale ? 'is-stale' : 'is-fresh'}`}
-          aria-label={`Record ${stale ? 'stale' : 'fresh'}`}
-        >
-          {stale ? 'STALE' : 'FRESH'}
-        </span>
+        <span className="qsdb-clock-pill-small">DEMO — NOT A LIVE CLOCK</span>
       </div>
 
       <p className="qsdb-detail-rule">Final hard gate wins.</p>
@@ -262,12 +245,6 @@ function DetailPanel({ record, nowMs, staleThresholdMs }: DetailPanelProps) {
       <dl className="qsdb-detail-grid">
         <dt>Source timestamp</dt>
         <dd>{formatUtc(record.generatedAt)}</dd>
-
-        <dt>Age</dt>
-        <dd>{formatDuration(ageMs)} old</dd>
-
-        <dt>Freshness</dt>
-        <dd>{stale ? 'Stale — exceeds threshold' : 'Fresh — within threshold'}</dd>
 
         <dt>Scanner decision</dt>
         <dd>

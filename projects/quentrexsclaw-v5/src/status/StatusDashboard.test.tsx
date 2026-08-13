@@ -1,36 +1,76 @@
 /**
- * Quantrex Status Dashboard v0.1 — behaviour tests (TDD).
+ * Quantrex Status Dashboard v0.1 — behaviour tests (TDD, revised).
  *
- * These tests pin the read-only, hard-gate-wins contract of the dashboard:
- * the DEMO label is visible, the final state is rendered and dominates the
- * scanner state, downgrades are marked, runnable state is shown, the fixture
- * carries no forbidden execution fields, the rendered UI shows no plan
- * labels, and the detail panel is a read-only provenance view.
+ * Pins the read-only, final-hard-gate-wins contract:
+ * no live clock; no bot-approved/prior-plan copy; all three operational states
+ * covered; MONITOR_ONLY never runnable; POSITION_MANAGE_ONLY never offers
+ * new/re-entry/add/averaging/reversal/imperative copy; downgrades carry no
+ * executable content; the MONITOR_ONLY_OUTCOME concept is absent; detail
+ * triggers expose aria-expanded/aria-controls and drive a read-only panel.
  */
 import { render, screen, within, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import StatusDashboard from './StatusDashboard';
 import { FIXTURE } from './fixture';
-import { findForbiddenKeys } from './guard';
+import { findUnsafeRenderCopy } from './guard';
 
-const XAU_TS = new Date('2026-08-13T08:15:36Z').getTime();
+describe('Quantrex Status Dashboard v0.1 (revised)', () => {
+  it('is labeled DEMO SNAPSHOT — NOT A LIVE CLOCK', () => {
+    render(<StatusDashboard />);
+    expect(screen.getByText(/NOT A LIVE CLOCK/i)).toBeInTheDocument();
+  });
 
-describe('Quantrex Status Dashboard v0.1', () => {
-  it('is visibly labeled DEMO SNAPSHOT — NOT LIVE', () => {
+  it('keeps not-live / not-trade wording', () => {
     render(<StatusDashboard />);
     expect(screen.getByText(/DEMO SNAPSHOT — NOT LIVE/i)).toBeInTheDocument();
+    // "not a trade instruction" appears in both the not-live note and the footer.
+    expect(screen.getAllByText(/not a trade instruction/i).length).toBeGreaterThan(0);
   });
 
-  it('renders the final operational state in the final-decision hero', () => {
-    render(<StatusDashboard />);
-    const hero = screen.getByRole('region', { name: /final decision/i });
-    expect(within(hero).getByText('MONITOR_ONLY')).toBeInTheDocument();
+  it('does not present a live FRESH/STALE clock or computed age', () => {
+    const { container } = render(<StatusDashboard />);
+    expect(container.textContent).not.toMatch(/\bFRESH\b/);
+    expect(container.textContent).not.toMatch(/\bSTALE\b/);
+    expect(container.textContent).not.toMatch(/\d+\s*(s|m|h|d)\s*old/i);
   });
 
-  it('shows runnable state as false for the primary fixture', () => {
-    render(<StatusDashboard />);
-    const hero = screen.getByRole('region', { name: /final decision/i });
-    expect(within(hero).getByText(/Runnable:\s*false/i)).toBeInTheDocument();
+  it('covers all three operational states in the fixture', () => {
+    const states = FIXTURE.records.map((r) => r.finalOperationalState);
+    expect(states).toEqual(
+      expect.arrayContaining(['ENTRY_GO', 'POSITION_MANAGE_ONLY', 'MONITOR_ONLY'])
+    );
+  });
+
+  it('enforces MONITOR_ONLY => runnableNow false across the fixture', () => {
+    for (const r of FIXTURE.records) {
+      if (r.finalOperationalState === 'MONITOR_ONLY') {
+        expect(r.runnableNow).toBe(false);
+      }
+    }
+  });
+
+  it('POSITION_MANAGE_ONLY copy never offers new/re-entry/add/averaging/reversal', () => {
+    const managed = FIXTURE.records.filter(
+      (x) => x.finalOperationalState === 'POSITION_MANAGE_ONLY'
+    );
+    expect(managed.length).toBeGreaterThan(0);
+    for (const r of managed) {
+      const copy = `${r.displayAction} ${r.finalBlocker ?? ''}`;
+      expect(copy).not.toMatch(
+        /new[- ]?entry|re[- ]?entry|\badd\b|averaging|average (down|up)|\breverse|reversal|imperative|execute/i
+      );
+    }
+  });
+
+  it('contains no bot-approved or prior-plan copy', () => {
+    const { container } = render(<StatusDashboard />);
+    expect(container.textContent).not.toMatch(/bot-approved|prior plan|active plan/i);
+  });
+
+  it('does not reference the MONITOR_ONLY_OUTCOME concept', () => {
+    const { container } = render(<StatusDashboard />);
+    expect(container.textContent).not.toMatch(/MONITOR_ONLY_OUTCOME/);
+    expect(JSON.stringify(FIXTURE)).not.toMatch(/MONITOR_ONLY_OUTCOME/);
   });
 
   it('marks a scanner GO downgraded to MONITOR_ONLY as DOWNGRADED', () => {
@@ -39,35 +79,49 @@ describe('Quantrex Status Dashboard v0.1', () => {
     expect(within(row).getByText(/DOWNGRADED/i)).toBeInTheDocument();
   });
 
-  it('does not render execution plan labels or controls', () => {
-    const { container } = render(<StatusDashboard />);
-    expect(container.textContent).not.toMatch(
-      /stop\s*loss|take\s*profit|\bTP\d?\b|\bSL\b|\btarget\b|leverage|position\s*size|\bquantity\b|R\s*[:/]\s*R|risk[-_/ ]?reward|\bBUY\b|\bSELL\b|reduce[_ ]?only|client[_ ]?order/i
+  it('a scanner GO + final MONITOR_ONLY row has no executable content', () => {
+    render(<StatusDashboard />);
+    const row = screen.getByRole('row', { name: /XAUUSDT/i });
+    expect(
+      within(row).queryByRole('button', { name: /execute|buy|sell|place order/i })
+    ).toBeNull();
+    expect(row.textContent).not.toMatch(
+      /entry price|stop loss|take profit|leverage|position size|R\s*[:/]\s*R/i
     );
   });
 
-  it('contains no forbidden execution field names in the fixture data', () => {
-    expect(findForbiddenKeys(FIXTURE)).toEqual([]);
+  it('has no execution plan labels or controls anywhere in the render', () => {
+    const { container } = render(<StatusDashboard />);
+    expect(findUnsafeRenderCopy(container.textContent || '')).toEqual([]);
   });
 
-  it('opens a read-only detail panel showing "Final hard gate wins" and the exact blocker', () => {
-    render(<StatusDashboard now={XAU_TS + 60 * 1000} />);
-    fireEvent.click(screen.getByRole('button', { name: /details for XAUUSDT/i }));
+  it('instrument triggers expose aria-expanded and aria-controls and drive the detail panel', () => {
+    render(<StatusDashboard />);
+    const trigger = screen.getByRole('button', { name: /details for XAUUSDT/i });
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    expect(trigger).toHaveAttribute('aria-controls');
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    const panelId = trigger.getAttribute('aria-controls');
     const panel = screen.getByRole('region', { name: /candidate detail/i });
+    expect(panel.id).toBe(panelId);
     expect(within(panel).getByText(/Final hard gate wins/i)).toBeInTheDocument();
     expect(
       within(panel).getByText(/Hyperliquid confirmation unavailable/i)
     ).toBeInTheDocument();
   });
 
-  it('reports a stale indicator when age exceeds the threshold', () => {
-    render(<StatusDashboard now={XAU_TS + 30 * 60 * 1000} />);
-    expect(screen.getAllByText(/\bSTALE\b/i).length).toBeGreaterThan(0);
+  it('default hero shows MONITOR_ONLY / Runnable: false', () => {
+    render(<StatusDashboard />);
+    const hero = screen.getByRole('region', { name: /final decision/i });
+    expect(within(hero).getByText('MONITOR_ONLY')).toBeInTheDocument();
+    expect(within(hero).getByText(/Runnable:\s*false/i)).toBeInTheDocument();
   });
 
-  it('reports fresh status when age is within the threshold', () => {
-    render(<StatusDashboard now={XAU_TS + 60 * 1000} />);
-    expect(screen.queryAllByText(/\bSTALE\b/i)).toHaveLength(0);
-    expect(screen.getAllByText(/\bFRESH\b/i).length).toBeGreaterThan(0);
+  it('detail panel shows a static (non-clock) provenance timestamp', () => {
+    render(<StatusDashboard />);
+    fireEvent.click(screen.getByRole('button', { name: /details for XAUUSDT/i }));
+    const panel = screen.getByRole('region', { name: /candidate detail/i });
+    expect(within(panel).getByText(/2026-08-13 08:15:36 UTC/i)).toBeInTheDocument();
   });
 });
