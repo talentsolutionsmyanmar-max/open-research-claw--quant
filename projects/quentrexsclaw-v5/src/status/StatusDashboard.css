@@ -16,6 +16,8 @@
   --radius: 10px;
 
   min-height: 100vh;
+  max-width: 100%;
+  min-width: 0;
   background: var(--bg);
   color: var(--text);
   font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -445,6 +447,29 @@
 
 /* ── Responsive: top strip ── */
 @media (max-width: 720px) {
+  /* Defensive: every flex/grid ancestor can shrink; nothing can force the page
+     wider than the viewport. (No overflow-x masking is used — the layout fits.) */
+  .qsdb,
+  .qsdb-topbar,
+  .qsdb-topbar-left,
+  .qsdb-topbar-right,
+  .qsdb-hero,
+  .qsdb-hero-grid,
+  .qsdb-hero-cell,
+  .qsdb-detail,
+  .qsdb-detail-grid,
+  .qsdb-table-wrap,
+  .qsdb-table,
+  .qsdb-row {
+    min-width: 0;
+    max-width: 100%;
+  }
+  /* Hero metadata collapses to a single column so cell values always fit. */
+  .qsdb-hero-grid {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
   .qsdb-topbar {
     flex-direction: column;
     align-items: flex-start;
